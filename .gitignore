@@ -1,0 +1,41 @@
+# ============================================================
+# ATLAS .gitignore
+# ============================================================
+
+# Build output
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VS
+.vs/
+.idea/
+*.DotSettings.user
+
+# ============================================================
+# SECURITY — never commit runtime secrets
+# settings.json holds the DPAPI-encrypted Steam API key, Discord
+# token, etc. Even encrypted, it is per-machine and must not ship.
+# ============================================================
+settings.json
+**/settings.json
+*.atlasprofile.local
+
+# Runtime data / logs (live under %AppData%\ATLAS, but ignore any local copies)
+Logs/
+*.log
+atlas.db
+atlas.db-wal
+atlas.db-shm
+SteamCMD/
+
+# Internal build-process notes (kept locally; not part of the product repo)
+docs/PHASE_*_COMPLETE.md
+
+# OS
+Thumbs.db
+desktop.ini

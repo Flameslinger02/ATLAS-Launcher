@@ -1,0 +1,146 @@
+<UserControl x:Class="Atlas.Pages.DiscordBot.DiscordBotPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource Atlas.Brush.Background}">
+    <UserControl.Resources>
+        <Style x:Key="Tool" TargetType="Button" BasedOn="{StaticResource Atlas.Button.Secondary}">
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Padding" Value="12,6"/>
+        </Style>
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,12,0,3"/>
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+        </Style>
+        <Style TargetType="PasswordBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="Margin" Value="0,6,16,0"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+        <Style x:Key="Dot" TargetType="Ellipse">
+            <Setter Property="Width" Value="14"/><Setter Property="Height" Value="14"/>
+            <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding BotState}" Value="Online">
+                    <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.Success}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding BotState}" Value="Connecting">
+                    <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.Warning}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding BotState}" Value="Error">
+                    <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.Error}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel Margin="16">
+        <TextBlock DockPanel.Dock="Top" Text="Discord Bot" FontSize="22" FontWeight="SemiBold"
+                   Margin="0,0,0,12" Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+
+        <!-- Status footer -->
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="10,8" Margin="0,12,0,0">
+            <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Connection -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <DockPanel>
+                            <Ellipse Style="{StaticResource Dot}"/>
+                            <TextBlock Text="{Binding BotStateText}" VerticalAlignment="Center" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Lbl}" Text="BOT TOKEN (stored DPAPI-encrypted; never written in plaintext)"/>
+                        <PasswordBox x:Name="TokenBox"/>
+                        <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="{DynamicResource Atlas.Brush.TextSecondary}"
+                                   Text="A saved token is already stored — leave blank to reuse it."
+                                   Visibility="{Binding HasSavedToken, Converter={StaticResource BoolToVisibility}}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Style="{StaticResource Atlas.Button.Primary}" Content="Connect" Padding="16,7"
+                                    Margin="0,0,6,0" Click="OnConnectClick"/>
+                            <Button Style="{StaticResource Tool}" Content="Disconnect" Command="{Binding DisconnectCommand}"/>
+                            <Button Style="{StaticResource Tool}" Content="Send Test Embed" Command="{Binding SendTestEmbedCommand}"/>
+                            <Button Style="{StaticResource Tool}" Content="Re-register Commands" Command="{Binding ReRegisterCommandsCommand}"/>
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Lbl}" Text="PRIMARY GUILD (for instant slash-command registration)"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Refresh" Margin="6,0,0,0"
+                                    Command="{Binding RefreshGuildsCommand}"/>
+                            <ComboBox ItemsSource="{Binding Guilds}" SelectedItem="{Binding SelectedGuild}"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Channels + roles -->
+                <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Style="{StaticResource Lbl}" Text="STATUS CHANNEL ID"/>
+                            <TextBox Text="{Binding StatusChannelId, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Style="{StaticResource Lbl}" Text="PLAYER LOG CHANNEL ID (optional)"/>
+                            <TextBox Text="{Binding PlayerLogChannelId, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Style="{StaticResource Lbl}" Text="CONSOLE MIRROR CHANNEL ID (optional; can be spammy)"/>
+                            <TextBox Text="{Binding ConsoleLogChannelId, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Style="{StaticResource Lbl}" Text="COMMAND CHANNEL ID (optional; restricts commands)"/>
+                            <TextBox Text="{Binding CommandChannelId, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource Lbl}" Text="ADMIN ROLE IDs (comma-separated; blank = anyone)"/>
+                            <TextBox Text="{Binding AdminRoleIds, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Style="{StaticResource Lbl}" Text="OWNER ROLE ID (required for /atlas rcon)"/>
+                            <TextBox Text="{Binding OwnerRoleId, UpdateSourceTrigger=PropertyChanged}"/>
+                            <WrapPanel Margin="0,12,0,0">
+                                <CheckBox Content="Allow DMs" IsChecked="{Binding AllowDMs}"/>
+                                <CheckBox Content="Notify player join" IsChecked="{Binding NotifyPlayerJoin}"/>
+                                <CheckBox Content="Notify player leave" IsChecked="{Binding NotifyPlayerLeave}"/>
+                                <CheckBox Content="Notify crash" IsChecked="{Binding NotifyCrash}"/>
+                                <CheckBox Content="Mirror console log" IsChecked="{Binding MirrorConsoleLog}"/>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Button HorizontalAlignment="Left" Margin="0,12,0,0" Style="{StaticResource Atlas.Button.Primary}"
+                        Content="Save Configuration" Padding="16,7" Command="{Binding SaveConfigCommand}"/>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

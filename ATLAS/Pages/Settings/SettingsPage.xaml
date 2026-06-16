@@ -1,0 +1,265 @@
+<UserControl x:Class="Atlas.Pages.Settings.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource Atlas.Brush.Background}">
+    <UserControl.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+        <Style x:Key="Section" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="Margin" Value="0,0,0,14"/>
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="Hint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextDisabled}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+        <Style x:Key="Field" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.SurfaceRaised}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Check" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,24,24,0">
+            <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+                <TextBlock Text="Settings" FontSize="24" FontWeight="Bold"
+                           Foreground="{DynamicResource Atlas.Brush.TextPrimary}" Margin="0,0,0,18"/>
+
+                <!-- SteamCMD -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="SteamCMD"/>
+                        <TextBlock Style="{StaticResource Label}" Text="steamcmd.exe path"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Style="{StaticResource Field}"
+                                     Text="{Binding SteamCmdPath, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Grid.Column="1" Content="Browse…" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Margin="8,0,0,0" Command="{Binding BrowseSteamCmdCommand}"/>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="Download SteamCMD" Style="{StaticResource Atlas.Button.Primary}"
+                                    Command="{Binding DownloadSteamCmdCommand}"/>
+                            <Button Content="Test SteamCMD" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Margin="8,0,0,0" Command="{Binding TestSteamCmdCommand}"/>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Hint}"
+                                   Text="Downloads SteamCMD into %AppData%\ATLAS\SteamCMD. Test runs 'steamcmd +quit'."/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Steam credentials -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Steam Account"/>
+                        <TextBlock Style="{StaticResource Label}" Text="Steam username (no password is ever stored)"/>
+                        <TextBox Style="{StaticResource Field}"
+                                 Text="{Binding SteamUsername, UpdateSourceTrigger=PropertyChanged}"/>
+                        <CheckBox Style="{StaticResource Check}" Content="Remember username (uses SteamCMD's cached login token)"
+                                  IsChecked="{Binding RememberSteamCredentials}"/>
+                        <Button Content="Clear Saved Credentials" Style="{StaticResource Atlas.Button.Secondary}"
+                                HorizontalAlignment="Left" Margin="0,12,0,0"
+                                Command="{Binding ClearSavedCredentialsCommand}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Steam Web API key -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Steam Web API Key"/>
+                        <TextBlock Style="{StaticResource Label}"
+                                   Text="API key (stored DPAPI-encrypted; leave blank to keep the saved key)"/>
+                        <PasswordBox x:Name="ApiKeyBox" Padding="8,6"
+                                     Background="{DynamicResource Atlas.Brush.SurfaceRaised}"
+                                     Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
+                                     BorderBrush="{DynamicResource Atlas.Brush.Border}"/>
+                        <TextBlock Style="{StaticResource Hint}"
+                                   Text="A key is currently saved (DPAPI-encrypted)."
+                                   Visibility="{Binding HasSavedApiKey, Converter={StaticResource BoolToVisibility}}"/>
+                        <TextBlock Style="{StaticResource Hint}" Text="No API key saved yet."
+                                   Visibility="{Binding HasSavedApiKey, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="Test API Key" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Click="OnTestApiKeyClick"/>
+                            <Button Content="Clear API Key" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Margin="8,0,0,0" Command="{Binding ClearApiKeyCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Mod staging -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Mod Staging Directory"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Style="{StaticResource Field}"
+                                     Text="{Binding ModStagingDirectory, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Grid.Column="1" Content="Browse…" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Margin="8,0,0,0" Command="{Binding BrowseModStagingCommand}"/>
+                        </Grid>
+                        <TextBlock Style="{StaticResource Hint}"
+                                   Text="Where SteamCMD downloads Workshop mods before they are deployed to a server."/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Startup -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Startup"/>
+                        <CheckBox Style="{StaticResource Check}" Content="Auto-start the active server profile when ATLAS launches"
+                                  IsChecked="{Binding AutoStartServerOnLaunch}"/>
+                        <CheckBox Style="{StaticResource Check}" Content="Minimize to the system tray instead of exiting on close"
+                                  IsChecked="{Binding MinimizeToTray}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Updates -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Updates"/>
+                        <CheckBox Style="{StaticResource Check}" Content="Check for updates on startup"
+                                  IsChecked="{Binding CheckUpdatesOnStartup}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="Check Now" Style="{StaticResource Atlas.Button.Primary}"
+                                    Command="{Binding CheckForUpdatesNowCommand}"/>
+                            <TextBlock Text="{Binding LastUpdateText}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </StackPanel>
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Style="{StaticResource Label}" Text="GitHub owner"/>
+                                <TextBox Style="{StaticResource Field}"
+                                         Text="{Binding GitHubOwner, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Style="{StaticResource Label}" Text="GitHub repo"/>
+                                <TextBox Style="{StaticResource Field}"
+                                         Text="{Binding GitHubRepo, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Appearance -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Appearance"/>
+                        <CheckBox Style="{StaticResource Check}" Content="Use the light theme"
+                                  IsChecked="{Binding IsLightTheme}"/>
+                        <TextBlock Style="{StaticResource Hint}" Text="The theme changes immediately and is remembered."/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Logging -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Logging &amp; Data"/>
+                        <TextBlock Style="{StaticResource Label}" Text="Log level"/>
+                        <ComboBox Width="220" HorizontalAlignment="Left"
+                                  ItemsSource="{Binding LogLevels}"
+                                  SelectedItem="{Binding LogLevel, UpdateSourceTrigger=PropertyChanged}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="Open Log Folder" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding OpenLogFolderCommand}"/>
+                            <Button Content="Open Data Folder" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Margin="8,0,0,0" Command="{Binding OpenDataFolderCommand}"/>
+                            <Button Content="Clear Logs Older Than 30 Days" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Margin="8,0,0,0" Command="{Binding ClearOldLogsCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- About -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="About"/>
+                        <TextBlock Foreground="{DynamicResource Atlas.Brush.TextPrimary}" FontWeight="SemiBold"
+                                   Text="ATLAS — Arma Tactical Launch and Administration System"/>
+                        <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource Atlas.Brush.TextSecondary}"
+                                   Text="{Binding VersionText, StringFormat='Version {0}'}"/>
+                        <TextBlock Foreground="{DynamicResource Atlas.Brush.TextSecondary}"
+                                   Text="{Binding BuildDateText, StringFormat='Build date: {0}'}"/>
+                        <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource Atlas.Brush.TextDisabled}"
+                                   Text="{Binding LicenseText}"/>
+                        <Button Content="Open GitHub Repository" Style="{StaticResource Atlas.Button.Secondary}"
+                                HorizontalAlignment="Left" Margin="0,12,0,0"
+                                Command="{Binding OpenGitHubCommand}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Danger zone -->
+                <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource Atlas.Brush.Error}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Danger Zone"
+                                   Foreground="{DynamicResource Atlas.Brush.Error}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Reset All Settings" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding ResetAllSettingsCommand}"/>
+                            <Button Content="Clear Entire Database" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Margin="8,0,0,0" Command="{Binding ClearDatabaseCommand}"/>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Hint}"
+                                   Text="Reset wipes settings (including saved secrets). Clear Database deletes all profiles, mods, schedules and history."/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Save bar -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,28">
+                    <Button Content="Save Configuration" Style="{StaticResource Atlas.Button.Primary}"
+                            Click="OnSaveClick"/>
+                    <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="14,0,0,0"
+                               Foreground="{DynamicResource Atlas.Brush.Success}"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Busy overlay -->
+        <Border Background="#B3000000" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <Border Background="{DynamicResource Atlas.Brush.SurfaceRaised}"
+                    BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="6"
+                    Padding="28" VerticalAlignment="Center" HorizontalAlignment="Center" MinWidth="360">
+                <StackPanel>
+                    <TextBlock Text="{Binding BusyStatus}" Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
+                               FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <ProgressBar Height="6" Margin="0,14,0,0" Minimum="0" Maximum="100"
+                                 Value="{Binding BusyPercent}"
+                                 Foreground="{DynamicResource Atlas.Brush.Accent}"
+                                 Background="{DynamicResource Atlas.Brush.Surface}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

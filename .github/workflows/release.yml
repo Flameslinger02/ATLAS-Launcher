@@ -1,0 +1,63 @@
+# ============================================================================
+#  ATLAS — build & publish the portable release
+# ============================================================================
+# A GitHub Actions workflow: GitHub's own runners build the app and attach the
+# binaries to a downloadable Release. Auth is the built-in GITHUB_TOKEN — there
+# is no secret to manage and nothing to leak (same model as the Nexus Admin repo).
+#
+# It runs when you either:
+#   * push a version tag like  v0.1.0,  OR
+#   * click  Actions -> "Release ATLAS" -> "Run workflow"  (and type a tag).
+# ============================================================================
+name: Release ATLAS
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to release (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+
+permissions:
+  contents: write          # lets the workflow create the Release
+
+jobs:
+  release:
+    runs-on: windows-latest   # WPF / win-x64 self-contained build needs Windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish portable single-file, self-contained exe
+        run: dotnet publish ATLAS/ATLAS.csproj -c Release -r win-x64 --self-contained true -o publish
+
+      - name: Package the portable zip
+        shell: pwsh
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          $stage = "stage"
+          New-Item -ItemType Directory -Path $stage | Out-Null
+          Copy-Item publish/ATLAS.exe $stage
+          Copy-Item README.md   $stage
+          Copy-Item CHANGELOG.md $stage
+          Copy-Item LICENSE     $stage
+          Compress-Archive -Path "$stage/*" -DestinationPath "ATLAS_$($env:TAG)_win-x64.zip"
+          Get-ChildItem -File | Select-Object Name, Length
+
+      - name: Publish the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ATLAS ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            publish/ATLAS.exe
+            ATLAS_*_win-x64.zip
+          generate_release_notes: true

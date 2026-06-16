@@ -1,0 +1,416 @@
+<UserControl x:Class="Atlas.Pages.ServerConfig.ServerConfigPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource Atlas.Brush.Background}">
+
+    <UserControl.Resources>
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,10,0,3"/>
+        </Style>
+        <Style x:Key="Hdr" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.Accent}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,6,0,6"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Padding="16"
+                Visibility="{Binding HasActiveProfile, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <TextBlock Text="Server Configuration" FontSize="22" FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Save" Style="{StaticResource Atlas.Button.Primary}"
+                            Command="{Binding SaveCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- No-active-profile overlay -->
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Visibility="{Binding HasActiveProfile, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+            <TextBlock Text="No active profile" FontSize="22" FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <TextBlock Text="Activate a profile on the Profiles page to edit its configuration."
+                       Margin="0,10,0,0" HorizontalAlignment="Center"
+                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+        </StackPanel>
+
+        <!-- Main tabs -->
+        <TabControl Background="Transparent" BorderThickness="0" Padding="0"
+                    SelectedIndex="{Binding SelectedTabIndex}"
+                    Visibility="{Binding HasActiveProfile, Converter={StaticResource BoolToVisibility}}">
+
+            <!-- 0 General -->
+            <TabItem Header="General">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Style="{StaticResource Hdr}" Text="IDENTITY"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Server name (hostname)"/>
+                        <TextBox Text="{Binding Profile.ServerName}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Server password (join)"/>
+                        <TextBox Text="{Binding Profile.ServerPassword}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Admin password"/>
+                        <TextBox Text="{Binding Profile.AdminPassword}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max players"/>
+                        <TextBox Text="{Binding Profile.MaxPlayers}" Width="120" HorizontalAlignment="Left"/>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="MOTD" Margin="0,16,0,6"/>
+                        <TextBox Text="{Binding MotdText}" AcceptsReturn="True" TextWrapping="Wrap"
+                                 Height="90" VerticalScrollBarVisibility="Auto"/>
+                        <TextBlock Text="One line per row." Foreground="{DynamicResource Atlas.Brush.TextDisabled}"
+                                   FontSize="11" Margin="0,3,0,0"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="MOTD interval (s)"/>
+                        <TextBox Text="{Binding Profile.MotdInterval}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Log file name"/>
+                        <TextBox Text="{Binding Profile.LogFile}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 1 Network -->
+            <TabItem Header="Network">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Style="{StaticResource Hdr}" Text="CONNECTION LIMITS"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max ping"/>
+                        <TextBox Text="{Binding Profile.MaxPing}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max desync"/>
+                        <TextBox Text="{Binding Profile.MaxDesync}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max packet loss"/>
+                        <TextBox Text="{Binding Profile.MaxPacketLoss}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Min bandwidth (bps)"/>
+                        <TextBox Text="{Binding Profile.MinBandwidth}" Width="200" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max bandwidth (bps)"/>
+                        <TextBox Text="{Binding Profile.MaxBandwidth}" Width="200" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max messages to send"/>
+                        <TextBox Text="{Binding Profile.MaxMsgSend}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max size guaranteed"/>
+                        <TextBox Text="{Binding Profile.MaxSizeGuaranteed}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max size non-guaranteed"/>
+                        <TextBox Text="{Binding Profile.MaxSizeNonguaranteed}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Disconnect timeout (s)"/>
+                        <TextBox Text="{Binding Profile.DisconnectTimeout}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max disconnect timeout (s)"/>
+                        <TextBox Text="{Binding Profile.MaxDisconnectTimeout}" Width="120" HorizontalAlignment="Left"/>
+                        <CheckBox Content="Loopback" IsChecked="{Binding Profile.Loopback}"/>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="RCON (BATTLEYE)" Margin="0,16,0,6"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="RCON password"/>
+                        <TextBox Text="{Binding Profile.RconPassword}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="RCON port"/>
+                        <TextBox Text="{Binding RconPort, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Foreground="{DynamicResource Atlas.Brush.Error}" FontSize="11" Margin="0,4,0,0"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding ShowRconPortWarning, Converter={StaticResource BoolToVisibility}}"
+                                   Text="RCON port is inside the reserved 2302-2306 range used by the game. Pick another (e.g. 2301)."/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 2 Security -->
+            <TabItem Header="Security">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Style="{StaticResource Hdr}" Text="SECURITY"/>
+                        <CheckBox Content="BattlEye anti-cheat" IsChecked="{Binding Profile.EnableBattlEye}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Verify signatures (0 = off, 1 = v1, 2 = v2)"/>
+                        <ComboBox ItemsSource="{Binding VerifySignaturesOptions}"
+                                  SelectedItem="{Binding Profile.VerifySignatures}"
+                                  Width="120" HorizontalAlignment="Left"/>
+                        <CheckBox Content="Kick duplicate IDs" IsChecked="{Binding Profile.KickDuplicates}"/>
+                        <CheckBox Content="Require secure ID" IsChecked="{Binding Profile.RequiredSecureId}"/>
+                        <CheckBox Content="File patching" IsChecked="{Binding Profile.FilePatching}"/>
+                        <TextBlock Text="Enable file patching only for trusted private servers."
+                                   Foreground="{DynamicResource Atlas.Brush.Warning}" FontSize="11"
+                                   Margin="0,4,0,0" TextWrapping="Wrap"/>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="ALLOWED LOAD EXTENSIONS" Margin="0,16,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Add" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding AddLoadExtensionCommand}"/>
+                            <TextBox Text="{Binding NewLoadExtension, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding LoadExtensions}" Margin="0,4,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource Atlas.Brush.SurfaceRaised}" CornerRadius="3"
+                                            Margin="0,4,4,0" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                                            <Button Content="x" Margin="6,0,0,0" Padding="4,0"
+                                                    Style="{StaticResource Atlas.Button.Nav}"
+                                                    Command="{Binding DataContext.RemoveLoadExtensionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="ALLOWED PREPROCESS EXTENSIONS" Margin="0,16,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Add" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding AddPreprocessExtensionCommand}"/>
+                            <TextBox Text="{Binding NewPreprocessExtension, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding PreprocessExtensions}" Margin="0,4,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource Atlas.Brush.SurfaceRaised}" CornerRadius="3"
+                                            Margin="0,4,4,0" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                                            <Button Content="x" Margin="6,0,0,0" Padding="4,0"
+                                                    Style="{StaticResource Atlas.Button.Nav}"
+                                                    Command="{Binding DataContext.RemovePreprocessExtensionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="ALLOWED HTML LOAD EXTENSIONS" Margin="0,16,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Add" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding AddHtmlExtensionCommand}"/>
+                            <TextBox Text="{Binding NewHtmlExtension, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding HtmlExtensions}" Margin="0,4,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource Atlas.Brush.SurfaceRaised}" CornerRadius="3"
+                                            Margin="0,4,4,0" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                                            <Button Content="x" Margin="6,0,0,0" Padding="4,0"
+                                                    Style="{StaticResource Atlas.Button.Nav}"
+                                                    Command="{Binding DataContext.RemoveHtmlExtensionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="ALLOWED HTML LOAD URIS" Margin="0,16,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Add" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding AddHtmlUriCommand}"/>
+                            <TextBox Text="{Binding NewHtmlUri, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding HtmlUris}" Margin="0,4,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource Atlas.Brush.SurfaceRaised}" CornerRadius="3"
+                                            Margin="0,4,4,0" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                                            <Button Content="x" Margin="6,0,0,0" Padding="4,0"
+                                                    Style="{StaticResource Atlas.Button.Nav}"
+                                                    Command="{Binding DataContext.RemoveHtmlUriCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 3 Mission -->
+            <TabItem Header="Mission">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Style="{StaticResource Hdr}" Text="MISSION"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Mission name (template)"/>
+                        <TextBox Text="{Binding Profile.MissionName}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Difficulty"/>
+                        <ComboBox ItemsSource="{Binding DifficultyOptions}"
+                                  SelectedItem="{Binding Profile.MissionDifficulty}"
+                                  Width="160" HorizontalAlignment="Left"/>
+                        <CheckBox Content="Auto-init persistent mission" IsChecked="{Binding Profile.AutoInit}"/>
+                        <CheckBox Content="Persistent" IsChecked="{Binding Profile.Persistent}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 4 Performance -->
+            <TabItem Header="Performance">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Style="{StaticResource Hdr}" Text="EXECUTABLE"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Server executable"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Open Folder" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding OpenServerFolderCommand}"/>
+                            <Button DockPanel.Dock="Right" Content="Browse" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding BrowseServerExeCommand}"/>
+                            <TextBox Text="{Binding Profile.ServerExecutablePath}"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Server directory"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Browse" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding BrowseServerDirCommand}"/>
+                            <TextBox Text="{Binding Profile.ServerDirectory}"/>
+                        </DockPanel>
+                        <CheckBox Content="Use Profiling Branch (arma3server_profiling_x64.exe)"
+                                  IsChecked="{Binding Profile.UseProfilingBranch}"/>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="PERFORMANCE" Margin="0,16,0,6"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="CPU count (0 = auto)"/>
+                        <TextBox Text="{Binding Profile.CpuCount}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Extra threads (-exThreads)"/>
+                        <ComboBox ItemsSource="{Binding ExThreadsOptions}"
+                                  SelectedItem="{Binding Profile.ExThreads}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Max memory MB (0 = auto)"/>
+                        <TextBox Text="{Binding Profile.MaxMem}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Malloc (e.g. mimalloc_v203_LockPages)"/>
+                        <TextBox Text="{Binding Profile.Malloc}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Bandwidth algorithm"/>
+                        <ComboBox ItemsSource="{Binding BandwidthAlgOptions}"
+                                  SelectedItem="{Binding Profile.BandwidthAlg}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Limit FPS (0 = no limit)"/>
+                        <TextBox Text="{Binding Profile.LimitFPS}" Width="120" HorizontalAlignment="Left"/>
+                        <CheckBox Content="Enable hyper-threading (-enableHT)" IsChecked="{Binding Profile.EnableHT}"/>
+                        <CheckBox Content="Huge pages (-hugePages)" IsChecked="{Binding Profile.HugePages}"/>
+                        <CheckBox Content="Load mission to memory" IsChecked="{Binding Profile.LoadMissionToMemory}"/>
+                        <CheckBox Content="No pause (-noPause)" IsChecked="{Binding Profile.NoPause}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 5 Voice & Voting -->
+            <TabItem Header="Voice &amp; Voting">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Style="{StaticResource Hdr}" Text="VOICE"/>
+                        <CheckBox Content="Disable VoN (voice over net)" IsChecked="{Binding Profile.DisableVoN}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="VoN codec quality (0-30)"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Slider x:Name="VonSlider" Minimum="0" Maximum="30" Width="260"
+                                    Value="{Binding Profile.VonCodecQuality}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Value, ElementName=VonSlider, StringFormat=N0}"
+                                       Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="VOTING" Margin="0,16,0,6"/>
+                        <CheckBox Content="Voting enabled" IsChecked="{Binding Profile.VotingEnabled}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Vote threshold (0.0 - 1.0)"/>
+                        <TextBox Text="{Binding Profile.VoteThreshold}" Width="120" HorizontalAlignment="Left"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Vote mission players"/>
+                        <TextBox Text="{Binding Profile.VoteMissionPlayers}" Width="120" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 6 Advanced -->
+            <TabItem Header="Advanced">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <TextBlock Style="{StaticResource Hdr}" Text="CUSTOM"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Custom launch parameters (appended verbatim)"/>
+                        <TextBox Text="{Binding Profile.CustomLaunchParameters}" AcceptsReturn="True"
+                                 TextWrapping="Wrap" Height="60" VerticalScrollBarVisibility="Auto"/>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="MISC" Margin="0,16,0,6"/>
+                        <CheckBox Content="No logs (-nologs)" IsChecked="{Binding Profile.NoLogs}"/>
+                        <CheckBox Content="Enable debug console" IsChecked="{Binding Profile.EnableDebugConsole}"/>
+                        <TextBlock Text="Debug console allows clients to run script — use only on trusted servers."
+                                   Foreground="{DynamicResource Atlas.Brush.Error}" FontSize="11"
+                                   Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        <CheckBox Content="Short timestamp in logs" IsChecked="{Binding Profile.TimeStampFormat}"/>
+                        <CheckBox Content="Ranking enabled" IsChecked="{Binding Profile.RankingEnabled}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="Ranking file"/>
+                        <TextBox Text="{Binding Profile.RankingFile}"/>
+                        <CheckBox Content="Allow drawing in map" IsChecked="{Binding Profile.DrawingInMap}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- 7 Preview -->
+            <TabItem Header="Preview">
+                <DockPanel Margin="16">
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button Content="Refresh Preview" Style="{StaticResource Atlas.Button.Secondary}"
+                                Command="{Binding RefreshPreviewCommand}"/>
+                        <Button Content="Write Config Files Now" Style="{StaticResource Atlas.Button.Primary}"
+                                Margin="8,0,0,0" Command="{Binding WriteConfigFilesCommand}"/>
+                    </StackPanel>
+                    <TabControl Background="Transparent" BorderThickness="0" Padding="0">
+                        <TabItem Header="server.cfg">
+                            <DockPanel Margin="0,8,0,0">
+                                <Button DockPanel.Dock="Top" Content="Copy" HorizontalAlignment="Left"
+                                        Style="{StaticResource Atlas.Button.Secondary}"
+                                        Command="{Binding CopyServerCfgCommand}" Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding ServerCfgPreview}" IsReadOnly="True"
+                                         FontFamily="Consolas" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto" MinHeight="320"/>
+                            </DockPanel>
+                        </TabItem>
+                        <TabItem Header="Launch Command">
+                            <DockPanel Margin="0,8,0,0">
+                                <Button DockPanel.Dock="Top" Content="Copy" HorizontalAlignment="Left"
+                                        Style="{StaticResource Atlas.Button.Secondary}"
+                                        Command="{Binding CopyLaunchCommandCommand}" Margin="0,0,0,8"/>
+                                <TextBox Text="{Binding LaunchCommandPreview}" IsReadOnly="True"
+                                         FontFamily="Consolas" TextWrapping="Wrap" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto" MinHeight="320"/>
+                            </DockPanel>
+                        </TabItem>
+                    </TabControl>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

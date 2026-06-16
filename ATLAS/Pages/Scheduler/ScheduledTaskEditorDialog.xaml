@@ -1,0 +1,121 @@
+<Window x:Class="Atlas.Pages.Scheduler.ScheduledTaskEditorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Scheduled Task" Width="560" Height="640"
+        WindowStyle="None" ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Atlas.Brush.SurfaceRaised}"
+        TextElement.Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
+        TextOptions.TextFormattingMode="Display"
+        FontFamily="Segoe UI" FontSize="13">
+
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+    </Window.InputBindings>
+
+    <Window.Resources>
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,12,0,3"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="Margin" Value="0,12,0,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1">
+        <DockPanel>
+            <!-- Title bar (draggable) -->
+            <Border x:Name="HeaderBar" DockPanel.Dock="Top" Height="44"
+                    Background="{DynamicResource Atlas.Brush.Surface}"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid>
+                    <TextBlock Text="{Binding DialogTitle}" Margin="16,0" VerticalAlignment="Center"
+                               FontWeight="SemiBold"/>
+                    <Button HorizontalAlignment="Right" Width="44" Style="{StaticResource Atlas.Button.Nav}"
+                            Command="{Binding CancelCommand}" ToolTip="Close">
+                        <materialDesign:PackIcon Kind="Close" Width="18" Height="18"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Footer -->
+            <Border DockPanel.Dock="Bottom" Background="{DynamicResource Atlas.Brush.Surface}" Padding="16,10">
+                <DockPanel>
+                    <TextBlock Text="{Binding ValidationError}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Atlas.Brush.Error}" TextWrapping="Wrap"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource Atlas.Button.Secondary}" Content="Cancel" Padding="16,7"
+                                Margin="0,0,8,0" Command="{Binding CancelCommand}"/>
+                        <Button Style="{StaticResource Atlas.Button.Primary}" Content="Save" Padding="16,7"
+                                Command="{Binding SaveCommand}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Body -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,8">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource Lbl}" Text="NAME"/>
+                    <TextBox Text="{Binding TaskName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Style="{StaticResource Lbl}" Text="TYPE"/>
+                    <ComboBox ItemsSource="{Binding TaskTypes}" SelectedItem="{Binding SelectedType}"/>
+
+                    <TextBlock Style="{StaticResource Lbl}" Text="CRON EXPRESSION (5-field; interpreted in local time)"/>
+                    <TextBox Text="{Binding Cron, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+                    <TextBlock Text="{Binding CronPreview}" Margin="0,4,0,0"
+                               Foreground="{DynamicResource Atlas.Brush.Accent}" TextWrapping="Wrap"/>
+
+                    <!-- Restart -->
+                    <StackPanel Visibility="{Binding IsRestart, Converter={StaticResource BoolToVisibility}}">
+                        <CheckBox Content="Broadcast a countdown over RCON before restarting"
+                                  IsChecked="{Binding CountdownEnabled}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="WARNING MESSAGE ({minutes} is substituted)"/>
+                        <TextBox Text="{Binding WarningMessage, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Style="{StaticResource Lbl}" Text="WARN AT (minutes before, comma-separated)"/>
+                        <TextBox Text="{Binding MinutesWarningsText, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <!-- Message -->
+                    <StackPanel Visibility="{Binding IsMessage, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource Lbl}" Text="MESSAGE TO BROADCAST"/>
+                        <TextBox Text="{Binding BroadcastMessage, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True" MinHeight="60" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- RconCommand -->
+                    <StackPanel Visibility="{Binding IsRconCommand, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource Lbl}" Text="RCON COMMAND (e.g. #lock)"/>
+                        <TextBox Text="{Binding RconCommandText, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <!-- Mod/Server update -->
+                    <StackPanel Visibility="{Binding IsUpdate, Converter={StaticResource BoolToVisibility}}">
+                        <CheckBox Content="Restart the server after updating (if running)"
+                                  IsChecked="{Binding AutoRestartAfterUpdate}"/>
+                    </StackPanel>
+
+                    <CheckBox Content="Enabled" IsChecked="{Binding IsEnabledOnSave}" Margin="0,16,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</Window>

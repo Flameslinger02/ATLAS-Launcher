@@ -1,0 +1,367 @@
+<UserControl x:Class="Atlas.Pages.Console.ConsolePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource Atlas.Brush.Background}">
+    <UserControl.Resources>
+        <Style x:Key="Tool" TargetType="Button" BasedOn="{StaticResource Atlas.Button.Secondary}">
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Padding" Value="10,5"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="StatusDot" TargetType="Ellipse">
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ConnectionState}" Value="Connected">
+                    <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.Success}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ConnectionState}" Value="Connecting">
+                    <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.Warning}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ConnectionState}" Value="Failed">
+                    <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.Error}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd" Padding="14,8" Margin="0,0,4,0"
+                                BorderThickness="0,0,0,2" BorderBrush="Transparent" Background="Transparent">
+                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Accent}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="LogLine" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Level}" Value="DBG">
+                    <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="VRB">
+                    <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="WRN">
+                    <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.Warning}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="ERR">
+                    <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.Error}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="FTL">
+                    <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.Error}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Player grid context menu -->
+        <ContextMenu x:Key="PlayerMenu">
+            <MenuItem Header="Kick" Click="OnCtxKick"/>
+            <MenuItem Header="Ban by ID" Click="OnCtxBanId"/>
+            <MenuItem Header="Ban by GUID" Click="OnCtxBanGuid"/>
+            <Separator/>
+            <MenuItem Header="Copy GUID" Click="OnCtxCopyGuid"/>
+            <MenuItem Header="Copy Name" Click="OnCtxCopyName"/>
+            <MenuItem Header="Send Private Message" Click="OnCtxPm"/>
+            <Separator/>
+            <MenuItem Header="Unmask / Mask IP" Click="OnCtxUnmask"/>
+        </ContextMenu>
+        <Style x:Key="PlayerRowStyle" TargetType="DataGridRow">
+            <Setter Property="ContextMenu" Value="{StaticResource PlayerMenu}"/>
+        </Style>
+        <Style x:Key="Grid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowBackground" Value="{DynamicResource Atlas.Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="16,12,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===== Connection bar ===== -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+            <Ellipse Style="{StaticResource StatusDot}"/>
+            <TextBlock Text="{Binding ConnectionStateText}" VerticalAlignment="Center" Margin="0,0,12,0"
+                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}" FontWeight="SemiBold"/>
+            <Button Style="{StaticResource Atlas.Button.Primary}" Content="Connect" Padding="14,6" Margin="0,0,6,0"
+                    Command="{Binding ConnectCommand}"/>
+            <Button Style="{StaticResource Tool}" Content="Disconnect" Command="{Binding DisconnectCommand}"/>
+            <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="12,0,0,0"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+        </DockPanel>
+
+        <!-- ===== Log viewer (ATLAS Log | Server RPT) ===== -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+
+            <!-- ATLAS App Log -->
+            <TabItem Header="ATLAS Log" DataContext="{Binding AppLog}">
+                <DockPanel Margin="0,8,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Export" Margin="0"
+                                Command="{Binding ExportCommand}"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Clear"
+                                Command="{Binding ClearCommand}"/>
+                        <CheckBox DockPanel.Dock="Right" Content="Auto-scroll" IsChecked="{Binding AutoScroll}"/>
+                        <CheckBox DockPanel.Dock="Right" Content="Pause" IsChecked="{Binding IsPaused}"/>
+                        <TextBox Width="220" HorizontalAlignment="Left" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                        <ComboBox Width="120" Margin="8,0,0,0" HorizontalAlignment="Left"
+                                  ItemsSource="{Binding LevelOptions}" SelectedItem="{Binding MinLevel}"/>
+                        <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                    </DockPanel>
+                    <Border Background="{DynamicResource Atlas.Brush.Surface}"
+                            BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
+                        <ListBox x:Name="AppLogList" ItemsSource="{Binding Entries}" Background="Transparent" BorderThickness="0"
+                                 FontFamily="Consolas" FontSize="12"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Padding" Value="10,1"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Display}" Style="{StaticResource LogLine}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Server RPT tail -->
+            <TabItem Header="Server RPT">
+                <DockPanel Margin="0,8,0,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Open in Explorer" Margin="0"
+                                Command="{Binding OpenRptInExplorerCommand}"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Save to File"
+                                Command="{Binding SaveRptCommand}"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Clear"
+                                Command="{Binding ClearServerRptCommand}"/>
+                        <TextBlock Text="Live tail of the running server's .rpt log."
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                    </DockPanel>
+                    <Border Background="{DynamicResource Atlas.Brush.Surface}"
+                            BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
+                        <ListBox x:Name="ServerRptList" ItemsSource="{Binding ServerRpt}" Background="Transparent" BorderThickness="0"
+                                 FontFamily="Consolas" FontSize="12"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Padding" Value="10,1"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+                    </Border>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+
+        <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="Transparent"
+                      VerticalAlignment="Center"/>
+
+        <!-- ===== RCON (Players | Bans | Console) ===== -->
+        <Grid Grid.Row="3">
+            <!-- No-active-profile overlay -->
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding HasActiveProfile, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                <TextBlock Text="No active profile" FontSize="20" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                <TextBlock Text="Activate a profile with RCON configured to use the console."
+                           Margin="0,8,0,0" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            </StackPanel>
+
+            <TabControl Background="Transparent" BorderThickness="0"
+                        Visibility="{Binding HasActiveProfile, Converter={StaticResource BoolToVisibility}}">
+
+                <!-- Players -->
+                <TabItem Header="{Binding PlayersHeader}">
+                    <DockPanel Margin="0,8,0,0">
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Refresh" Margin="0"
+                                    Command="{Binding RefreshPlayersCommand}"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Ban Selected" Click="OnBulkBan"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Kick Selected" Click="OnBulkKick"/>
+                            <TextBlock Text="{Binding CountdownText}" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </DockPanel>
+                        <Border Background="{DynamicResource Atlas.Brush.Surface}"
+                                BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
+                            <DataGrid x:Name="PlayersGrid" Style="{StaticResource Grid}"
+                                      ItemsSource="{Binding Players}" SelectedItem="{Binding SelectedPlayer}"
+                                      SelectionMode="Extended" RowStyle="{StaticResource PlayerRowStyle}"
+                                      PreviewMouseRightButtonDown="OnPlayersRightClick">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="40"/>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                                    <DataGridTextColumn Header="IP" Binding="{Binding DisplayIp}" Width="150"/>
+                                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" Width="50"/>
+                                    <DataGridTextColumn Header="GUID" Binding="{Binding Guid}" Width="220"/>
+                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80"/>
+                                    <DataGridCheckBoxColumn Header="Verified" Binding="{Binding Verified}" Width="70"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </TabItem>
+
+                <!-- Bans -->
+                <TabItem Header="Bans">
+                    <DockPanel Margin="0,8,0,0">
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Export" Margin="0"
+                                    Command="{Binding ExportBansCommand}"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Add Manual Ban"
+                                    Command="{Binding AddManualBanCommand}"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Unban"
+                                    Command="{Binding UnbanCommand}"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Refresh"
+                                    Command="{Binding RefreshBansCommand}"/>
+                            <TextBlock Text="Active server bans" VerticalAlignment="Center" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Atlas.Brush.Accent}"/>
+                        </DockPanel>
+                        <Border Background="{DynamicResource Atlas.Brush.Surface}"
+                                BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
+                            <DataGrid x:Name="BansGrid" Style="{StaticResource Grid}"
+                                      ItemsSource="{Binding Bans}" SelectedItem="{Binding SelectedBan}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="40"/>
+                                    <DataGridTextColumn Header="GUID / IP" Binding="{Binding GuidOrIp}" Width="240"/>
+                                    <DataGridTextColumn Header="Known Name" Binding="{Binding KnownName}" Width="*"/>
+                                    <DataGridTextColumn Header="Minutes" Binding="{Binding MinutesRemaining}" Width="80"/>
+                                    <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="2*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </DockPanel>
+                </TabItem>
+
+                <!-- RCON Console -->
+                <TabItem Header="RCON Console">
+                    <DockPanel Margin="0,8,0,0">
+                        <!-- Quick buttons -->
+                        <Border DockPanel.Dock="Top" Padding="10,8" Margin="0,0,0,8"
+                                Background="{DynamicResource Atlas.Brush.Surface}"
+                                BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Quick:" VerticalAlignment="Center" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                                <Button Style="{StaticResource Tool}" Content="#lock" Command="{Binding LockServerCommand}"/>
+                                <Button Style="{StaticResource Tool}" Content="#unlock" Command="{Binding UnlockServerCommand}"/>
+                                <Button Style="{StaticResource Tool}" Content="#restart" Command="{Binding RestartMissionCommand}"/>
+                                <Button Style="{StaticResource Tool}" Content="#shutdown" Command="{Binding ShutdownServerCommand}"/>
+                                <Button Style="{StaticResource Tool}" Content="#missions" Command="{Binding ListMissionsCommand}"/>
+                                <Button Style="{StaticResource Tool}" Content="#reassign" Command="{Binding ReassignMissionCommand}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Global message row -->
+                        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+                            <DockPanel>
+                                <TextBlock Text="Global:" VerticalAlignment="Center" Margin="0,0,8,0"
+                                           Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Atlas.Button.Secondary}"
+                                        Content="Send" Padding="14,6" Margin="6,0,0,0"
+                                        Command="{Binding SendGlobalMessageCommand}"/>
+                                <TextBox Text="{Binding GlobalMessageInput, UpdateSourceTrigger=PropertyChanged}"
+                                         VerticalContentAlignment="Center">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding SendGlobalMessageCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Command input row -->
+                        <Border DockPanel.Dock="Bottom" Padding="0,8,0,0">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Atlas.Button.Primary}"
+                                        Content="Execute" Padding="14,6" Margin="6,0,0,0"
+                                        Command="{Binding SendCommand}"/>
+                                <TextBox x:Name="CommandBox" Text="{Binding CommandInput, UpdateSourceTrigger=PropertyChanged}"
+                                         FontFamily="Consolas" VerticalContentAlignment="Center"
+                                         PreviewKeyDown="OnCommandKeyDown">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding SendCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Scrollback -->
+                        <Border Background="{DynamicResource Atlas.Brush.Surface}"
+                                BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
+                            <ListBox x:Name="ConsoleList" ItemsSource="{Binding ConsoleLog}" Background="Transparent" BorderThickness="0"
+                                     FontFamily="Consolas" FontSize="12"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Padding" Value="10,1"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </Border>
+                    </DockPanel>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </Grid>
+</UserControl>
