@@ -2,25 +2,25 @@
 
 A modern Windows desktop launcher and admin console for **Arma 3 dedicated servers**. ATLAS manages server
 profiles, mods, missions, scheduling, BattlEye RCON, headless clients, and Discord integration from a single
-self-contained application — a spiritual successor to FASTER/TADST with a live admin console.
+self contained application — a spiritual successor to FASTER/TADST with a live admin console.
 
-> **Status:** v0.1.0 · .NET 8 · WPF · single-file, self-contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
+> **Status:** v0.1.0 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
 
 ---
 
 ## Features
 
 - **Server profiles** — full `server.cfg` / `basic.cfg` generation, live launch-command preview, import/export.
-- **Mods** — SteamCMD download/update, mod presets, Arma 3 Launcher `.html` preset import, junction-point
-  deployment with key handling, per-mod headless-client targeting.
+- **Mods** — SteamCMD download/update, mod presets, Arma 3 Launcher `.html` preset import, junction point
+  deployment with key handling, per mod headless client targeting.
 - **Missions** — scan `MPMissions`, set the active mission and parameters.
-- **Process management** — launch/stop/restart with crash detection and optional auto-restart; live RPT log tail
+- **Process management** — launch/stop/restart with crash detection and optional auto restart; live RPT log tail
   and CPU/RAM sampling on the Dashboard.
-- **Headless clients** — 1–10 instances, per-instance profiles/logs, auto-restart.
+- **Headless clients** — 1–10 instances, per instance profiles/logs, auto restart.
 - **Console / RCON** — BattlEye BERCon client: live player list (kick/ban/unban, PM), bans manager, command console
   with history, quick actions, and a Server RPT viewer.
-- **Scheduler** — cron-based restarts, RCON broadcasts, mod/server updates, with countdown warnings.
-- **Discord bot** — embedded bot with 22 `/atlas …` slash commands, role-gated, plus crash/join/leave notifications
+- **Scheduler** — cron based restarts, RCON broadcasts, mod/server updates, with countdown warnings.
+- **Discord bot** — embedded bot with 22 `/atlas …` slash commands, role gated, plus crash/join/leave notifications
   and a pinned live status embed.
 - **Settings** — SteamCMD setup, Steam Web API key (encrypted), update checker, log level, **light/dark theme**.
 
@@ -40,7 +40,7 @@ self-contained application — a spiritual successor to FASTER/TADST with a live
 
 ### SteamCMD / Steam login
 
-ATLAS uses SteamCMD's own cached-session model (FASTER-style): you enter a **username only** — your Steam password
+ATLAS uses SteamCMD's own cached session model (FASTER style): you enter a **username only** — your Steam password
 is **never** stored or passed to ATLAS. Steam Guard prompts are detected and surfaced for input when needed. For
 Workshop metadata and preview images, add a free **Steam Web API key** (Settings → Steam Web API Key); it is stored
 encrypted.
@@ -84,7 +84,7 @@ Requires the **.NET 8 SDK** on Windows.
 # Run / debug
 dotnet build ATLAS\ATLAS.csproj -c Debug
 
-# Produce the single-file, self-contained release exe (bin\publish\ATLAS.exe)
+# Produce the single file, self contained release exe (bin\publish\ATLAS.exe)
 dotnet publish ATLAS\ATLAS.csproj -c Release -r win-x64 --self-contained true -o ATLAS\bin\publish
 ```
 

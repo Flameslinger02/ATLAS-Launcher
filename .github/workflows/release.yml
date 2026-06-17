@@ -60,4 +60,11 @@ jobs:
           files: |
             publish/ATLAS.exe
             ATLAS_*_win-x64.zip
-          generate_release_notes: true
+          # Fixed body (no generate_release_notes — re-running on a tag would otherwise append
+          # a duplicate "Full Changelog" line each time).
+          body: |
+            **ATLAS ${{ github.event.inputs.tag || github.ref_name }}** — a portable, single-file Windows admin tool for Arma 3 dedicated servers.
+
+            **How to use:** download **`ATLAS.exe`** below and run it — no installer and no .NET runtime required. (Or grab `ATLAS_<tag>_win-x64.zip` for the exe bundled with the README, CHANGELOG, and LICENSE.)
+
+            Profiles, mods (SteamCMD), missions, process management with crash auto-restart, headless clients, a BattlEye RCON console, a cron scheduler, an embedded Discord bot, and a system tray. See `CHANGELOG.md` for the full list.
