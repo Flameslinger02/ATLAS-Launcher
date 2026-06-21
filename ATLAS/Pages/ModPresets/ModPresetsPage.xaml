@@ -94,16 +94,16 @@
                           Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
                           HorizontalGridLinesBrush="{DynamicResource Atlas.Brush.Border}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="#" Binding="{Binding LoadOrder}" IsReadOnly="True" Width="40"/>
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                        <DataGridTextColumn Header="Workshop ID" Binding="{Binding WorkshopId}" IsReadOnly="True" Width="120"/>
-                        <DataGridTextColumn Header="Version" Binding="{Binding Version}" IsReadOnly="True" Width="80"/>
-                        <DataGridCheckBoxColumn Header="Local" Binding="{Binding IsLocal}" IsReadOnly="True" Width="55"/>
-                        <DataGridCheckBoxColumn Header="Server" Binding="{Binding EnabledForServer}" Width="60"/>
-                        <DataGridCheckBoxColumn Header="Client" Binding="{Binding EnabledForClient}" Width="60"/>
-                        <DataGridCheckBoxColumn Header="HC" Binding="{Binding EnabledForHeadless}" Width="50"/>
-                        <DataGridCheckBoxColumn Header="Optional" Binding="{Binding IsOptional}" Width="65"/>
-                        <DataGridCheckBoxColumn Header="Srv-only" Binding="{Binding IsServerOnly}" Width="65"/>
+                        <DataGridTextColumn Header="#" Binding="{Binding LoadOrder}" IsReadOnly="True" Width="44" MinWidth="36"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="240" MinWidth="120"/>
+                        <DataGridTextColumn Header="Workshop ID" Binding="{Binding WorkshopId}" IsReadOnly="True" Width="120" MinWidth="88"/>
+                        <DataGridTextColumn Header="Version" Binding="{Binding Version}" IsReadOnly="True" Width="80" MinWidth="56"/>
+                        <DataGridCheckBoxColumn Header="Local" Binding="{Binding IsLocal}" IsReadOnly="True" Width="55" MinWidth="46"/>
+                        <DataGridCheckBoxColumn Header="Server" Binding="{Binding EnabledForServer}" Width="60" MinWidth="54"/>
+                        <DataGridCheckBoxColumn Header="Client" Binding="{Binding EnabledForClient}" Width="60" MinWidth="54"/>
+                        <DataGridCheckBoxColumn Header="HC" Binding="{Binding EnabledForHeadless}" Width="50" MinWidth="42"/>
+                        <DataGridCheckBoxColumn Header="Optional" Binding="{Binding IsOptional}" Width="65" MinWidth="58"/>
+                        <DataGridCheckBoxColumn Header="Srv-only" Binding="{Binding IsServerOnly}" Width="65" MinWidth="58"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Border>

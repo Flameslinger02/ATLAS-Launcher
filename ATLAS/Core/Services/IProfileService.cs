@@ -26,4 +26,8 @@ public interface IProfileService
     ServerProfile? ActiveProfile { get; }
     void SetActiveProfile(ServerProfile profile);
     event EventHandler<ServerProfile>? ActiveProfileChanged;
+
+    /// <summary>Raised whenever the set of profiles changes (create/update/delete/clone/set-default/import),
+    /// so the sidebar profile list and the overview page can refresh regardless of who made the change.</summary>
+    event EventHandler? ProfilesChanged;
 }

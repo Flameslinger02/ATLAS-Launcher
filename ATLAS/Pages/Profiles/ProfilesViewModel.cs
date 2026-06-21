@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Text.Json;
 using Atlas.Core.Models;
 using Atlas.Core.Services;
 using Atlas.Core.ViewModels;
@@ -8,39 +7,42 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Atlas.Pages.Profiles;
 
-/// <summary>Profile library: list, create, edit, clone, delete, set default, activate, import/export.</summary>
+/// <summary>
+/// Profile navigation + management — the single source for the sidebar profile list AND the
+/// all-profiles overview page (both bind to this one singleton instance, so they always agree).
+/// Owns the profile list, per-profile commands (open/clone/delete/set-default/export) plus new/import,
+/// and reloads itself whenever the profile set changes (<see cref="IProfileService.ProfilesChanged"/>).
+/// </summary>
 public partial class ProfilesViewModel : BaseViewModel
 {
     private readonly IProfileService _profiles;
     private readonly IDialogService _dialogs;
-    private readonly IProfileEditorLauncher _editor;
+    private readonly INavigationService _navigation;
     private readonly ISettingsService _settings;
     private readonly IArmaInstallLocator _arma;
 
     public ObservableCollection<ServerProfile> Profiles { get; } = new();
 
-    [ObservableProperty] private ServerProfile? _selectedProfile;
+    public bool HasProfiles => Profiles.Count > 0;
 
-    /// <summary>Id of the active profile (or -1). Used by the list to highlight the active row.</summary>
+    /// <summary>Id of the active profile (or -1) — used to highlight the active row.</summary>
     public int ActiveProfileId => _profiles.ActiveProfile?.Id ?? -1;
 
-    public ProfilesViewModel(IProfileService profiles, IDialogService dialogs, IProfileEditorLauncher editor,
+    public ProfilesViewModel(IProfileService profiles, IDialogService dialogs, INavigationService navigation,
         ISettingsService settings, IArmaInstallLocator arma)
     {
         _profiles = profiles;
         _dialogs = dialogs;
-        _editor = editor;
+        _navigation = navigation;
         _settings = settings;
         _arma = arma;
         Title = "Profiles";
 
-        // This view model is transient: a fresh instance is created on every navigation, and
-        // LoadAsync below reads the current active profile, so the active-row highlight is correct
-        // on entry. We deliberately do NOT subscribe to ActiveProfileChanged — that would leak this
-        // instance into the long-lived IProfileService singleton with no way to unsubscribe
-        // (NavigationService does not invoke the navigation lifecycle hooks). The only thing that can
-        // change the active profile while this page is visible is the Activate command below, which
-        // refreshes the highlight locally.
+        // Singleton (app-lifetime): safe to subscribe without unsubscribing. Keeps the sidebar + overview
+        // in sync with any change, including a Save made from the profile editor.
+        _profiles.ProfilesChanged += (_, _) => _ = LoadAsync();
+        _profiles.ActiveProfileChanged += (_, _) => OnPropertyChanged(nameof(ActiveProfileId));
+
         _ = LoadAsync();
     }
 
@@ -51,10 +53,10 @@ public partial class ProfilesViewModel : BaseViewModel
         try
         {
             var all = await _profiles.GetAllProfilesAsync();
-            var selectedId = SelectedProfile?.Id;
             Profiles.Clear();
             foreach (var p in all) Profiles.Add(p);
-            SelectedProfile = Profiles.FirstOrDefault(p => p.Id == selectedId) ?? Profiles.FirstOrDefault();
+            OnPropertyChanged(nameof(ActiveProfileId));
+            OnPropertyChanged(nameof(HasProfiles));
         }
         finally
         {
@@ -62,81 +64,63 @@ public partial class ProfilesViewModel : BaseViewModel
         }
     }
 
+    /// <summary>Clicking a profile sets it active and opens its editor (after an unsaved-edit check).</summary>
+    [RelayCommand]
+    private async Task OpenProfile(ServerProfile? profile)
+    {
+        if (profile is null) return;
+        if (!await _navigation.ConfirmLeaveAsync()) return;
+        _profiles.SetActiveProfile(profile);
+        _navigation.NavigateTo(AppConstants.Pages.ProfileWorkspace);
+    }
+
     [RelayCommand]
     private async Task NewProfile()
     {
+        if (!await _navigation.ConfirmLeaveAsync()) return;
         var profile = new ServerProfile { Name = await UniqueDefaultNameAsync() };
         PrefillServerPaths(profile);
-        if (await _editor.EditAsync(profile, isNew: true))
-        {
-            var created = await _profiles.CreateProfileAsync(profile);
-            await LoadAsync();
-            SelectedProfile = Profiles.FirstOrDefault(p => p.Id == created.Id);
-        }
+        var created = await _profiles.CreateProfileAsync(profile);
+        _profiles.SetActiveProfile(created);
+        _navigation.NavigateTo(AppConstants.Pages.ProfileWorkspace);
     }
 
     [RelayCommand]
-    private async Task EditProfile()
+    private async Task CloneProfile(ServerProfile? profile)
     {
-        if (SelectedProfile is null) return;
-        var working = Clone(SelectedProfile);
-        if (await _editor.EditAsync(working, isNew: false))
-        {
-            await _profiles.UpdateProfileAsync(working);
-            await LoadAsync();
-            SelectedProfile = Profiles.FirstOrDefault(p => p.Id == working.Id);
-        }
-    }
-
-    [RelayCommand]
-    private async Task CloneProfile()
-    {
-        if (SelectedProfile is null) return;
-        var name = await _dialogs.PromptAsync("Clone Profile", "New profile name",
-            SelectedProfile.Name + " (copy)");
+        if (profile is null) return;
+        var name = await _dialogs.PromptAsync("Clone Profile", "New profile name", profile.Name + " (copy)");
         if (string.IsNullOrWhiteSpace(name)) return;
-        var clone = await _profiles.CloneProfileAsync(SelectedProfile.Id, name);
-        await LoadAsync();
-        SelectedProfile = Profiles.FirstOrDefault(p => p.Id == clone.Id);
+        await _profiles.CloneProfileAsync(profile.Id, name);
     }
 
     [RelayCommand]
-    private async Task DeleteProfile()
+    private async Task DeleteProfile(ServerProfile? profile)
     {
-        if (SelectedProfile is null) return;
+        if (profile is null) return;
         if (!await _dialogs.ConfirmAsync("Delete Profile",
-                $"Delete '{SelectedProfile.Name}'? This cannot be undone.", "Delete", "Cancel"))
+                $"Delete '{profile.Name}'? This cannot be undone.", "Delete", "Cancel"))
             return;
-        await _profiles.DeleteProfileAsync(SelectedProfile.Id);
-        await LoadAsync();
+        await _profiles.DeleteProfileAsync(profile.Id);
     }
 
     [RelayCommand]
-    private async Task SetDefault()
+    private async Task SetDefault(ServerProfile? profile)
     {
-        if (SelectedProfile is null) return;
-        await _profiles.SetDefaultProfileAsync(SelectedProfile.Id);
-        await LoadAsync();
+        if (profile is null) return;
+        await _profiles.SetDefaultProfileAsync(profile.Id);
     }
 
     [RelayCommand]
-    private void Activate()
+    private async Task ExportProfile(ServerProfile? profile)
     {
-        if (SelectedProfile is null) return;
-        _profiles.SetActiveProfile(SelectedProfile);
-        OnPropertyChanged(nameof(ActiveProfileId)); // move the list highlight to the newly active profile
-    }
-
-    [RelayCommand]
-    private async Task ExportProfile()
-    {
-        if (SelectedProfile is null) return;
+        if (profile is null) return;
         var path = await _dialogs.SaveFileAsync("Export Profile",
-            "ATLAS Profile (*.atlasprofile)|*.atlasprofile", SelectedProfile.Name + ".atlasprofile");
+            "ATLAS Profile (*.atlasprofile)|*.atlasprofile", profile.Name + ".atlasprofile");
         if (string.IsNullOrWhiteSpace(path)) return;
         try
         {
-            await _profiles.ExportProfileAsync(SelectedProfile.Id, path);
+            await _profiles.ExportProfileAsync(profile.Id, path);
             await _dialogs.ShowInfoAsync("Export", $"Profile exported to:\n{path}");
         }
         catch (Exception ex)
@@ -153,9 +137,7 @@ public partial class ProfilesViewModel : BaseViewModel
         if (string.IsNullOrWhiteSpace(path)) return;
         try
         {
-            var imported = await _profiles.ImportProfileAsync(path);
-            await LoadAsync();
-            SelectedProfile = Profiles.FirstOrDefault(p => p.Id == imported.Id);
+            await _profiles.ImportProfileAsync(path);
         }
         catch (Exception ex)
         {
@@ -184,11 +166,5 @@ public partial class ProfilesViewModel : BaseViewModel
         if (!existing.Contains("New Profile")) return "New Profile";
         for (var i = 2; ; i++)
             if (!existing.Contains($"New Profile ({i})")) return $"New Profile ({i})";
-    }
-
-    private static ServerProfile Clone(ServerProfile profile)
-    {
-        var json = JsonSerializer.Serialize(profile);
-        return JsonSerializer.Deserialize<ServerProfile>(json)!;
     }
 }

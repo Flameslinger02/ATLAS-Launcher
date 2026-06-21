@@ -20,6 +20,22 @@
         <Border Grid.Column="0" Background="{DynamicResource Atlas.Brush.Surface}"
                 BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="0,0,1,0">
             <DockPanel>
+                <DockPanel.Resources>
+                    <!-- Shared nav-button visual (used by the top + bottom nav lists). -->
+                    <DataTemplate x:Key="NavButtonTemplate">
+                        <Button Height="44" Style="{StaticResource Atlas.Button.Nav}"
+                                Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding Key}"
+                                ToolTip="{Binding Label}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="{Binding Icon}" Width="22" Height="22" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Label}" Margin="14,0,0,0" VerticalAlignment="Center"
+                                           Visibility="{Binding DataContext.SidebarCollapsed, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"/>
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </DockPanel.Resources>
+
                 <!-- Wordmark -->
                 <Border DockPanel.Dock="Top" Height="48" Padding="14,0"
                         BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="0,0,0,1">
@@ -43,23 +59,91 @@
                     </StackPanel>
                 </Button>
 
-                <!-- Nav items -->
-                <ItemsControl ItemsSource="{Binding NavItems}" DockPanel.Dock="Top">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Button Height="44" Style="{StaticResource Atlas.Button.Nav}"
-                                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                    CommandParameter="{Binding Key}"
-                                    ToolTip="{Binding Label}">
+                <!-- Nav: top items, then the Profiles section (header + "+" + list), then the rest -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding NavItemsTop}" ItemTemplate="{StaticResource NavButtonTemplate}"/>
+
+                        <!-- Profiles header: click = overview; "+" = new profile -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Height="44" Style="{StaticResource Atlas.Button.Nav}"
+                                    Command="{Binding NavigateCommand}" CommandParameter="Profiles"
+                                    ToolTip="All profiles">
                                 <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="{Binding Icon}" Width="22" Height="22" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Label}" Margin="14,0,0,0" VerticalAlignment="Center"
-                                               Visibility="{Binding DataContext.SidebarCollapsed, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"/>
+                                    <materialDesign:PackIcon Kind="AccountMultiple" Width="22" Height="22" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Profiles" Margin="14,0,0,0" VerticalAlignment="Center"
+                                               Visibility="{Binding SidebarCollapsed, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"/>
                                 </StackPanel>
                             </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                            <Button Grid.Column="1" Width="32" Height="44" Padding="0" Style="{StaticResource Atlas.Button.Nav}"
+                                    Command="{Binding ProfileNav.NewProfileCommand}" ToolTip="New profile">
+                                <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
+                            </Button>
+                        </Grid>
+
+                        <!-- Profile list (hidden when the sidebar is collapsed) -->
+                        <ItemsControl DataContext="{Binding ProfileNav}" ItemsSource="{Binding Profiles}"
+                                      Visibility="{Binding DataContext.SidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Height="34" Style="{StaticResource Atlas.Button.Nav}"
+                                            Command="{Binding DataContext.OpenProfileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            ToolTip="{Binding Name}">
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Set as Default"
+                                                          Command="{Binding PlacementTarget.Tag.SetDefaultCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Clone…"
+                                                          Command="{Binding PlacementTarget.Tag.CloneProfileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <MenuItem Header="Export…"
+                                                          Command="{Binding PlacementTarget.Tag.ExportProfileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Delete"
+                                                          Command="{Binding PlacementTarget.Tag.DeleteProfileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                        <StackPanel Orientation="Horizontal" Margin="28,0,0,0">
+                                            <Border Width="6" Height="6" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True">
+                                                                <DataTrigger.Binding>
+                                                                    <MultiBinding Converter="{StaticResource Equality}">
+                                                                        <Binding Path="Id"/>
+                                                                        <Binding Path="DataContext.ActiveProfileId" RelativeSource="{RelativeSource AncestorType=ItemsControl}"/>
+                                                                    </MultiBinding>
+                                                                </DataTrigger.Binding>
+                                                                <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Accent}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ItemsControl ItemsSource="{Binding NavItemsBottom}" ItemTemplate="{StaticResource NavButtonTemplate}"/>
+                    </StackPanel>
+                </ScrollViewer>
             </DockPanel>
         </Border>
 

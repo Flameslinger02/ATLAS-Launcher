@@ -258,6 +258,23 @@
                         </StackPanel>
                         <TextBlock Style="{StaticResource Hint}"
                                    Text="Reset wipes settings (including saved secrets). Clear Database deletes all profiles, mods, schedules and history."/>
+
+                        <Separator Margin="0,14,0,10" Background="{DynamicResource Atlas.Brush.Border}"/>
+                        <TextBlock Style="{StaticResource Label}" Text="Uninstall ATLAS"/>
+                        <CheckBox Style="{StaticResource Check}" Margin="0,6,0,0"
+                                  Content="Also wipe my configuration &amp; data (settings.json, saved keys, profiles database)"
+                                  IsChecked="{Binding WipeAllData}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Content="Uninstall ATLAS…" Command="{Binding UninstallCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource Atlas.Button.Secondary}">
+                                        <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.Error}"/>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Hint}"
+                                   Text="Removes ATLAS's files (SteamCMD download, headless profiles, logs) and deletes ATLAS.exe, then closes. With the box checked it also deletes your settings and profiles database — a complete wipe. You'll be asked to type UNINSTALL, and any missing files or errors are shown before closing."/>
                     </StackPanel>
                 </Border>
 

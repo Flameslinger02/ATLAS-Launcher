@@ -2,6 +2,42 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.0] — 2026-06-21
+
+### Added
+- **In-app updater** (Console → Updates) — install or update the **Arma 3 dedicated server** via SteamCMD with
+  live output and a cancel button, alongside an **Update ATLAS** button.
+- **ATLAS self-update** — ATLAS can download the latest release, replace itself, and relaunch, with no manual
+  copying. Also available from **Settings → Check for updates → Update & Restart**.
+- **Creator DLC toggles** — enable Contact, Global Mobilization, S.O.G. Prairie Fire, CSLA Iron Curtain,
+  Western Sahara, Spearhead 1944, Reaction Forces, and Expeditionary Forces per profile; enabled DLC is added to
+  the server launch command.
+- **Granular difficulty editor** — a full custom-difficulty grid plus **AI skill/precision** and optional view
+  distance / terrain grid, written to an `*.Arma3Profile`; load a built-in preset as a starting point.
+- **More server.cfg settings** — `requiredBuild`, VoN codec type, three-state file patching
+  (none / headless only / all), and scripting callbacks (`serverCommandPassword`, `onUserConnected` /
+  `onUserDisconnected`, `onHackedData`, `onDifferentData`, `onUnsignedData`, `onUserKicked`).
+- **More network + mission settings** — max packet size and max custom file size; auto-select mission, random
+  mission order, and skip lobby.
+- **Uninstall** (Settings → danger zone) — removes ATLAS and its regenerable files, with an optional checkbox to
+  also wipe your settings and profiles database; it reports anything it could not remove.
+
+### Changed
+- **Profiles are now the hub.** The sidebar lists your profiles — click one to make it active and edit it in a
+  full-width workspace with **Profile / Mods / Missions / Config / Network** tabs and a single Save. Server
+  Config, Mods, and Missions are no longer separate top-level pages, and a new overview page lists every profile
+  with quick actions.
+- **Console split in two** — **Console** (ATLAS log + Server RPT + Updates) and **RCON** (live player/ban
+  management and command console) are now separate sidebar entries.
+- **Data grids restyled** app-wide — sort arrows, clearer column edges and resize handles, and columns that keep
+  their dragged width and push their neighbours.
+
+### Fixed
+- Drop-down menus no longer collapse to just the selected value (a minimum width is enforced).
+- The mod **Name** column is read-only (it was accidentally editable).
+- Mods grid column widths and padding tightened for readability.
+- Fixed a crash that could occur when setting the active mission.
+
 ## [0.2.0] — 2026-06-21
 
 ### Added

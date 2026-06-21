@@ -44,11 +44,13 @@ public static class AppConstants
         public const string Mods = "Mods";
         public const string ModPresets = "ModPresets";
         public const string Missions = "Missions";
-        public const string Profiles = "Profiles";
+        public const string Profiles = "Profiles";                // all-profiles overview
+        public const string ProfileWorkspace = "ProfileWorkspace"; // single-profile editor (4 tabs)
         public const string HeadlessClients = "HeadlessClients";
         public const string DiscordBot = "DiscordBot";
         public const string Scheduler = "Scheduler";
-        public const string Console = "Console";
+        public const string Console = "Console";   // logs (ATLAS Log + Server RPT) + the Updates tab
+        public const string Rcon = "Rcon";         // live BattlEye RCON management
         public const string Settings = "Settings";
         // NOTE: ServerBrowser intentionally omitted (Phase 0 Q6 = No).
     }

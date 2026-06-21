@@ -29,7 +29,7 @@ public class ServerProfile
     public string ArmaProfileName { get; set; } = "ATLAS";
     public int Port { get; set; } = AppConstants.DefaultGamePort;
     public bool EnableBattlEye { get; set; } = true;
-    public bool FilePatching { get; set; }
+    public int FilePatching { get; set; }   // allowedFilePatching: 0 = none, 1 = headless only, 2 = all clients
     public bool NoSound { get; set; } = true;
     public bool NoSplash { get; set; } = true;
     public bool SkipIntro { get; set; } = true;
@@ -77,27 +77,75 @@ public class ServerProfile
     public bool Upnp { get; set; }
     public int DisconnectTimeout { get; set; } = 5;
     public int MaxDisconnectTimeout { get; set; } = 90;
+    public int MaxCustomFileSize { get; set; }        // server.cfg; 0 = no limit (line omitted)
+    public int MaxPacketSize { get; set; } = 1400;    // basic.cfg class sockets maxPacketSize
 
     // server.cfg — Security
     public bool KickDuplicates { get; set; } = true;
     public int VerifySignatures { get; set; } = 2;
     public bool RequiredSecureId { get; set; } = true;
+    public int RequiredBuild { get; set; }   // 0 = any build; otherwise clients must match this game build
 
     // server.cfg — Mission
     public string MissionName { get; set; } = string.Empty;
     public string MissionDifficulty { get; set; } = "Regular";
     public bool AutoInit { get; set; }
     public bool Persistent { get; set; }
+    public bool AutoSelectMission { get; set; }   // autoSelectMission = 1
+    public bool RandomMissionOrder { get; set; }  // randomMissionOrder = 1
+    public bool SkipLobby { get; set; }           // skipLobby = 1 (inside the mission class)
+
+    // Arma3Profile — granular difficulty, AI level and server view distance (Phase 3f).
+    // Tri-state ints map to class DifficultyPresets/CustomDifficulty/Options (0/1/2); on-off bools to
+    // the 0/1 options; AI to CustomAILevel (aiLevelPreset is forced to "AILevelCustom" so they apply).
+    public int DiffGroupIndicators { get; set; } = 1;   // 0=never, 1=limited, 2=always
+    public int DiffFriendlyTags { get; set; } = 1;
+    public int DiffEnemyTags { get; set; }
+    public int DiffDetectedMines { get; set; } = 1;
+    public int DiffCommands { get; set; } = 1;
+    public int DiffWaypoints { get; set; } = 1;
+    public int DiffWeaponInfo { get; set; } = 2;
+    public int DiffStanceIndicator { get; set; } = 2;
+    public int DiffThirdPersonView { get; set; } = 1;   // 0=disabled, 1=enabled, 2=vehicles only
+    public bool DiffReducedDamage { get; set; }
+    public bool DiffStaminaBar { get; set; }
+    public bool DiffWeaponCrosshair { get; set; } = true;
+    public bool DiffVisionAid { get; set; }
+    public bool DiffCameraShake { get; set; } = true;
+    public bool DiffScoreTable { get; set; } = true;
+    public bool DiffDeathMessages { get; set; } = true;
+    public bool DiffVonID { get; set; } = true;
+    public bool DiffMapContentFriendly { get; set; } = true;
+    public bool DiffMapContentEnemy { get; set; }
+    public bool DiffMapContentMines { get; set; }
+    public bool DiffAutoReport { get; set; } = true;
+    public bool DiffMultipleSaves { get; set; }
+    public bool DiffTacticalPing { get; set; } = true;
+    public double SkillAI { get; set; } = 0.6;          // CustomAILevel skillAI (0.0 - 1.0)
+    public double PrecisionAI { get; set; } = 0.5;      // CustomAILevel precisionAI (0.0 - 1.0)
+    public int ViewDistance { get; set; }               // 0 = omit (engine/mission default)
+    public int ObjectViewDistance { get; set; }         // 0 = omit
+    public double TerrainGrid { get; set; }             // 0 = omit
 
     // server.cfg — Voice & Voting
     public bool DisableVoN { get; set; }
     public int VonCodecQuality { get; set; } = 30;
+    public bool VonCodecLegacy { get; set; }   // false = vonCodec 1 (default), true = vonCodec 0 (legacy)
     public bool VotingEnabled { get; set; } = true;
     public float VoteMissionPlayers { get; set; } = 1;
     public float VoteThreshold { get; set; } = 0.33f;
 
     // server.cfg — Advanced
     public bool EnableDebugConsole { get; set; }
+
+    // server.cfg — Scripting callbacks (advanced; each blank string is omitted from server.cfg)
+    public string ServerCommandPassword { get; set; } = string.Empty;
+    public string OnUserConnected { get; set; } = string.Empty;
+    public string OnUserDisconnected { get; set; } = string.Empty;
+    public string OnHackedData { get; set; } = string.Empty;
+    public string OnDifferentData { get; set; } = string.Empty;
+    public string OnUnsignedData { get; set; } = string.Empty;
+    public string OnUserKicked { get; set; } = string.Empty;
 
     // RCON
     public string RconPassword { get; set; } = string.Empty;
@@ -116,6 +164,17 @@ public class ServerProfile
 
     // Custom
     public string CustomLaunchParameters { get; set; } = string.Empty;
+
+    // Creator / platform DLC — appended to the client-facing -mod= list by their folder names so
+    // connecting players who own the DLC get full content (the server itself needn't own them).
+    public bool DlcContact { get; set; }
+    public bool DlcGlobalMobilization { get; set; }
+    public bool DlcPrairieFire { get; set; }
+    public bool DlcCsla { get; set; }
+    public bool DlcWesternSahara { get; set; }
+    public bool DlcSpearhead1944 { get; set; }
+    public bool DlcReactionForces { get; set; }
+    public bool DlcExpeditionaryForces { get; set; }
 
     // Mod preset link (null = manual mod list)
     public int? ActiveModPresetId { get; set; }

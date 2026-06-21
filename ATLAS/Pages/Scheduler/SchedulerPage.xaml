@@ -58,14 +58,14 @@
                           Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
                           HorizontalGridLinesBrush="{DynamicResource Atlas.Brush.Border}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                        <DataGridTextColumn Header="Type" Binding="{Binding TypeText}" Width="110"/>
-                        <DataGridTextColumn Header="Cron" Binding="{Binding Cron}" Width="120"/>
-                        <DataGridTextColumn Header="Schedule" Binding="{Binding HumanCron}" Width="170"/>
-                        <DataGridTextColumn Header="Next Run" Binding="{Binding NextRunText}" Width="140"/>
-                        <DataGridTextColumn Header="Last Run" Binding="{Binding LastRunText}" Width="140"/>
-                        <DataGridTextColumn Header="Result" Binding="{Binding LastRunResult}" Width="2*"/>
-                        <DataGridTextColumn Header="State" Binding="{Binding EnabledText}" Width="80"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="220" MinWidth="120"/>
+                        <DataGridTextColumn Header="Type" Binding="{Binding TypeText}" Width="110" MinWidth="80"/>
+                        <DataGridTextColumn Header="Cron" Binding="{Binding Cron}" Width="120" MinWidth="90"/>
+                        <DataGridTextColumn Header="Schedule" Binding="{Binding HumanCron}" Width="170" MinWidth="120"/>
+                        <DataGridTextColumn Header="Next Run" Binding="{Binding NextRunText}" Width="140" MinWidth="100"/>
+                        <DataGridTextColumn Header="Last Run" Binding="{Binding LastRunText}" Width="140" MinWidth="100"/>
+                        <DataGridTextColumn Header="Result" Binding="{Binding LastRunResult}" Width="240" MinWidth="120"/>
+                        <DataGridTextColumn Header="State" Binding="{Binding EnabledText}" Width="80" MinWidth="60"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Border>

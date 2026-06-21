@@ -5,12 +5,9 @@ using Atlas.Pages.Console;
 using Atlas.Pages.Dashboard;
 using Atlas.Pages.DiscordBot;
 using Atlas.Pages.HeadlessClients;
-using Atlas.Pages.Missions;
 using Atlas.Pages.ModPresets;
-using Atlas.Pages.Mods;
 using Atlas.Pages.Profiles;
 using Atlas.Pages.Scheduler;
-using Atlas.Pages.ServerConfig;
 using Atlas.Pages.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -42,7 +39,6 @@ public static class AppHost
 
                 // ---- Phase 2: profile system ----
                 services.AddSingleton<IProfileService, ProfileService>();
-                services.AddSingleton<IProfileEditorLauncher, ProfileEditorLauncher>();
 
                 // ---- Phase 3: mod presets ----
                 services.AddSingleton<IModPresetService, ModPresetService>();
@@ -96,16 +92,14 @@ public static class AppHost
                 // (NavigationService does not call OnNavigatedFrom). Their pages stay transient.
                 services.AddTransient<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-                services.AddTransient<ServerConfigPage>();
-                services.AddTransient<ServerConfigViewModel>();
-                services.AddTransient<ModsPage>();
-                services.AddTransient<ModsViewModel>();
                 services.AddTransient<ModPresetsPage>();
                 services.AddTransient<ModPresetsViewModel>();
-                services.AddTransient<MissionsPage>();
-                services.AddTransient<MissionsViewModel>();
+                // Profiles: the overview page + the sidebar profile list share ONE ProfilesViewModel
+                // (singleton) so they stay in sync. The per-profile editor (workspace) is transient.
                 services.AddTransient<ProfilesPage>();
-                services.AddTransient<ProfilesViewModel>();
+                services.AddSingleton<ProfilesViewModel>();
+                services.AddTransient<ProfileWorkspacePage>();
+                services.AddTransient<ProfileWorkspaceViewModel>();
                 services.AddTransient<HeadlessClientsPage>();
                 services.AddSingleton<HeadlessClientsViewModel>();
                 services.AddTransient<DiscordBotPage>();
@@ -115,9 +109,15 @@ public static class AppHost
                 // Singleton: subscribes to ISchedulerService.TasksChanged for the page's lifetime (no-leak rule).
                 services.AddSingleton<SchedulerViewModel>();
                 services.AddTransient<ConsolePage>();
-                // Singletons: hold long-lived subscriptions (RCON / app-log) — same no-leak rule as Dashboard.
+                // Singletons: hold long-lived subscriptions (server-log / app-log) — same no-leak rule as Dashboard.
                 services.AddSingleton<ConsoleViewModel>();
                 services.AddSingleton<AppLogViewModel>();
+                // Updater (Arma + ATLAS) is composed into the Console page; singleton so an in-flight update
+                // keeps streaming across navigation.
+                services.AddSingleton<UpdaterViewModel>();
+                // RCON page split out of Console; its VM is a singleton (long-lived RCON subscriptions + poll timer).
+                services.AddTransient<RconPage>();
+                services.AddSingleton<RconViewModel>();
                 services.AddTransient<SettingsPage>();
                 services.AddTransient<SettingsViewModel>();
             })

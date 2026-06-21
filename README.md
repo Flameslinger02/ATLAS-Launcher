@@ -4,7 +4,7 @@ A modern Windows desktop launcher and admin console for **Arma 3 dedicated serve
 profiles, mods, missions, scheduling, BattlEye RCON, headless clients, and Discord integration from a single
 self contained application — a spiritual successor to FASTER/TADST with a live admin console.
 
-> **Status:** v0.2.0 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
+> **Status:** v0.3.0 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
 
 ---
 
@@ -17,12 +17,17 @@ self contained application — a spiritual successor to FASTER/TADST with a live
 - **Process management** — launch/stop/restart with crash detection and optional auto restart; live RPT log tail
   and CPU/RAM sampling on the Dashboard.
 - **Headless clients** — 1–10 instances, per instance profiles/logs, auto restart.
-- **Console / RCON** — BattlEye BERCon client: live player list (kick/ban/unban, PM), bans manager, command console
-  with history, quick actions, and a Server RPT viewer.
+- **Console** — live ATLAS log and Server RPT viewer, plus an **Updates** tab to install/update the Arma 3 server
+  (SteamCMD) and to update ATLAS itself.
+- **RCON** — BattlEye BERCon client: live player list (kick/ban/unban, PM), bans manager, and a command console
+  with history and quick actions.
 - **Scheduler** — cron based restarts, RCON broadcasts, mod/server updates, with countdown warnings.
 - **Discord bot** — embedded bot with 22 `/atlas …` slash commands, role gated, plus crash/join/leave notifications
   and a pinned live status embed.
 - **Settings** — SteamCMD setup, Steam Web API key (encrypted), update checker, log level, **light/dark theme**.
+- **Creator DLC, granular difficulty + AI, and more server settings** — per-profile DLC toggles, a custom
+  difficulty grid with AI skill/precision, scripting callbacks, VoN codec, file patching, and network/mission options.
+- **Self-updating** — ATLAS can download and apply its own updates; an **Uninstall** option (Settings) can remove it.
 
 ---
 
@@ -48,7 +53,7 @@ encrypted.
 ### BattlEye RCON
 
 Enable BattlEye on the profile and set the **RCON password** and **RCON port** (in `BEServer*.cfg` /
-`beserver.cfg`, `RConPassword` and `RConPort`). The **Console / RCON** page connects to the active profile's
+`beserver.cfg`, `RConPassword` and `RConPort`). The **RCON** page connects to the active profile's
 server and gives you the player list, bans, and a command console.
 
 ### Discord bot setup

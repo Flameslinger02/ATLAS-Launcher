@@ -51,6 +51,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L($"MinErrorToSendNear = {p.MinErrorToSendNear.ToString(Inv)};");
         L($"disconnectTimeout = {p.DisconnectTimeout};");
         L($"maxdisconnectTimeout = {p.MaxDisconnectTimeout};");
+        if (p.MaxCustomFileSize > 0) L($"MaxCustomFileSize = {p.MaxCustomFileSize};");
         if (p.Loopback) L("loopback = 1;");
         if (p.Upnp) L("upnp = 1;");   // server maps its own ports via a UPnP/IGD router
         L();
@@ -60,7 +61,8 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L($"verifySignatures = {p.VerifySignatures};");
         L($"kickDuplicate = {B(p.KickDuplicates)};");
         L($"requiredSecureId = {(p.RequiredSecureId ? 2 : 1)};");
-        L($"allowedFilePatching = {(p.FilePatching ? 2 : 0)};   // 0 = none, 1 = headless only, 2 = all clients");
+        if (p.RequiredBuild > 0) L($"requiredBuild = {p.RequiredBuild};");
+        L($"allowedFilePatching = {p.FilePatching};   // 0 = none, 1 = headless only, 2 = all clients");
         L($"allowedLoadFileExtensions[] = {ArrStr(p.AllowedLoadFileExtensions)};");
         L($"allowedPreprocessFileExtensions[] = {ArrStr(p.AllowedPreprocessFileExtensions)};");
         L($"allowedHTMLLoadExtensions[] = {ArrStr(p.AllowedHTMLLoadExtensions)};");
@@ -85,6 +87,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
             L("    {");
             L($"        template = {Str(p.MissionName)};");
             L($"        difficulty = {Str(p.MissionDifficulty)};");
+            if (p.SkipLobby) L("        skipLobby = 1;");
             L("    };");
             L("};");
         }
@@ -94,11 +97,14 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         }
         L($"autoInit = {B(p.AutoInit)};");
         L($"persistent = {B(p.Persistent)};");
+        if (p.AutoSelectMission) L("autoSelectMission = 1;");
+        if (p.RandomMissionOrder) L("randomMissionOrder = 1;");
         L();
 
         L("// --- Voice over net ---");
         L($"disableVoN = {B(p.DisableVoN)};");
         L($"vonCodecQuality = {p.VonCodecQuality};");
+        L($"vonCodec = {(p.VonCodecLegacy ? 0 : 1)};");
         L();
 
         L("// --- Voting ---");
@@ -107,6 +113,23 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L($"voteThreshold = {threshold.ToString(Inv)};");
         L($"voteMissionPlayers = {p.VoteMissionPlayers.ToString(Inv)};");
         L();
+
+        // Scripting callbacks — only emit the advanced hooks that are set.
+        if (!string.IsNullOrWhiteSpace(p.ServerCommandPassword) || !string.IsNullOrWhiteSpace(p.OnUserConnected)
+            || !string.IsNullOrWhiteSpace(p.OnUserDisconnected) || !string.IsNullOrWhiteSpace(p.OnHackedData)
+            || !string.IsNullOrWhiteSpace(p.OnDifferentData) || !string.IsNullOrWhiteSpace(p.OnUnsignedData)
+            || !string.IsNullOrWhiteSpace(p.OnUserKicked))
+        {
+            L("// --- Scripting callbacks ---");
+            if (!string.IsNullOrWhiteSpace(p.ServerCommandPassword)) L($"serverCommandPassword = {Str(p.ServerCommandPassword)};");
+            if (!string.IsNullOrWhiteSpace(p.OnUserConnected)) L($"onUserConnected = {Str(p.OnUserConnected)};");
+            if (!string.IsNullOrWhiteSpace(p.OnUserDisconnected)) L($"onUserDisconnected = {Str(p.OnUserDisconnected)};");
+            if (!string.IsNullOrWhiteSpace(p.OnHackedData)) L($"onHackedData = {Str(p.OnHackedData)};");
+            if (!string.IsNullOrWhiteSpace(p.OnDifferentData)) L($"onDifferentData = {Str(p.OnDifferentData)};");
+            if (!string.IsNullOrWhiteSpace(p.OnUnsignedData)) L($"onUnsignedData = {Str(p.OnUnsignedData)};");
+            if (!string.IsNullOrWhiteSpace(p.OnUserKicked)) L($"onUserKicked = {Str(p.OnUserKicked)};");
+            L();
+        }
 
         L("// --- Misc ---");
         L($"drawingInMap = {B(p.DrawingInMap)};");
@@ -136,7 +159,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L();
         L("class sockets");
         L("{");
-        L("    maxPacketSize = 1400;");
+        L($"    maxPacketSize = {p.MaxPacketSize};");
         L("};");
 
         return sb.ToString();
@@ -148,6 +171,59 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         var sb = new StringBuilder();
         sb.AppendLine($"RConPassword {p.RconPassword}");
         sb.AppendLine($"RConPort {p.RconPort}");
+        return sb.ToString();
+    }
+
+    public string GenerateArma3Profile(ServerProfile p)
+    {
+        var sb = new StringBuilder();
+        void L(string s = "") => sb.AppendLine(s);
+
+        L("// ATLAS-generated server profile — granular difficulty, AI level and view distance.");
+        L("// The server.cfg mission must use difficulty = \"Custom\" for this CustomDifficulty to apply.");
+        L("version=1;");
+        L("class DifficultyPresets");
+        L("{");
+        L("\tclass CustomDifficulty");
+        L("\t{");
+        L("\t\tclass Options");
+        L("\t\t{");
+        L($"\t\t\tgroupIndicators={p.DiffGroupIndicators};");
+        L($"\t\t\tfriendlyTags={p.DiffFriendlyTags};");
+        L($"\t\t\tenemyTags={p.DiffEnemyTags};");
+        L($"\t\t\tdetectedMines={p.DiffDetectedMines};");
+        L($"\t\t\tcommands={p.DiffCommands};");
+        L($"\t\t\twaypoints={p.DiffWaypoints};");
+        L($"\t\t\tweaponInfo={p.DiffWeaponInfo};");
+        L($"\t\t\tstanceIndicator={p.DiffStanceIndicator};");
+        L($"\t\t\treducedDamage={B(p.DiffReducedDamage)};");
+        L($"\t\t\tstaminaBar={B(p.DiffStaminaBar)};");
+        L($"\t\t\tweaponCrosshair={B(p.DiffWeaponCrosshair)};");
+        L($"\t\t\tvisionAid={B(p.DiffVisionAid)};");
+        L($"\t\t\tthirdPersonView={p.DiffThirdPersonView};");
+        L($"\t\t\tcameraShake={B(p.DiffCameraShake)};");
+        L($"\t\t\tscoreTable={B(p.DiffScoreTable)};");
+        L($"\t\t\tdeathMessages={B(p.DiffDeathMessages)};");
+        L($"\t\t\tvonID={B(p.DiffVonID)};");
+        L($"\t\t\tmapContentFriendly={B(p.DiffMapContentFriendly)};");
+        L($"\t\t\tmapContentEnemy={B(p.DiffMapContentEnemy)};");
+        L($"\t\t\tmapContentMines={B(p.DiffMapContentMines)};");
+        L($"\t\t\tautoReport={B(p.DiffAutoReport)};");
+        L($"\t\t\tmultipleSaves={B(p.DiffMultipleSaves)};");
+        L($"\t\t\ttacticalPing={B(p.DiffTacticalPing)};");
+        L("\t\t};");
+        L("\t\taiLevelPreset=\"AILevelCustom\";");
+        L("\t};");
+        L("\tclass CustomAILevel");
+        L("\t{");
+        L($"\t\tskillAI={p.SkillAI.ToString(Inv)};");
+        L($"\t\tprecisionAI={p.PrecisionAI.ToString(Inv)};");
+        L("\t};");
+        L("};");
+        if (p.ViewDistance > 0) L($"viewDistance={p.ViewDistance};");
+        if (p.ObjectViewDistance > 0) L($"preferredObjectViewDistance={p.ObjectViewDistance};");
+        if (p.TerrainGrid > 0) L($"terrainGrid={p.TerrainGrid.ToString(Inv)};");
+
         return sb.ToString();
     }
 
@@ -167,10 +243,11 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         Flag("-cfg=basic.cfg");
 
         // Resolve the mod list in load order. Server-only mods go in -serverMod=, the rest in -mod=.
+        // Enabled creator/platform DLC folders lead the client-facing -mod= list.
         var ordered = p.Mods.OrderBy(m => m.LoadOrder).ToList();
-        var regular = string.Join(";", ordered
-            .Where(m => m.EnabledForServer && !m.IsServerOnly)
-            .Select(ModFolder).Where(s => s.Length > 0));
+        var regular = string.Join(";", EnabledDlcFolders(p)
+            .Concat(ordered.Where(m => m.EnabledForServer && !m.IsServerOnly).Select(ModFolder))
+            .Where(s => s.Length > 0));
         var serverOnly = string.Join(";", ordered
             .Where(m => m.EnabledForServer && m.IsServerOnly)
             .Select(ModFolder).Where(s => s.Length > 0));
@@ -178,7 +255,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         if (serverOnly.Length > 0) Flag($"-serverMod={MaybeQuote(serverOnly)}");
 
         Flag(p.EnableBattlEye ? "-BattlEye" : "-noBattlEye");
-        if (p.FilePatching) Flag("-filePatching");
+        if (p.FilePatching > 0) Flag("-filePatching");
         if (p.NetLog) Flag("-netlog");
         if (p.NoSound) Flag("-nosound");
         if (p.NoSplash) Flag("-nosplash");
@@ -217,6 +294,14 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         Directory.CreateDirectory(beDir);
         await File.WriteAllTextAsync(Path.Combine(beDir, "beserver_x64.cfg"), GenerateBeServerCfg(p), ct)
             .ConfigureAwait(false);
+
+        // Arma3Profile — written where the server reads it given ATLAS's launch line
+        // (-profiles=<ServerDir>\profiles -name=<name>): <ServerDir>\profiles\Users\<name>\<name>.Arma3Profile.
+        var profileName = string.IsNullOrWhiteSpace(p.ArmaProfileName) ? "ATLAS" : p.ArmaProfileName.Trim();
+        var profileDir = Path.Combine(p.ServerDirectory, "profiles", "Users", profileName);
+        Directory.CreateDirectory(profileDir);
+        await File.WriteAllTextAsync(Path.Combine(profileDir, profileName + ".Arma3Profile"), GenerateArma3Profile(p), ct)
+            .ConfigureAwait(false);
     }
 
     // ---- helpers ----
@@ -235,6 +320,19 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         if (!string.IsNullOrWhiteSpace(m.FolderName)) return m.FolderName;
         if (!string.IsNullOrWhiteSpace(m.Name)) return "@" + m.Name;
         return string.Empty;
+    }
+
+    /// <summary>The Arma root folder names for the enabled creator/platform DLC, in a stable order.</summary>
+    private static IEnumerable<string> EnabledDlcFolders(ServerProfile p)
+    {
+        if (p.DlcContact) yield return "Contact";
+        if (p.DlcGlobalMobilization) yield return "gm";
+        if (p.DlcPrairieFire) yield return "vn";
+        if (p.DlcCsla) yield return "csla";
+        if (p.DlcWesternSahara) yield return "ws";
+        if (p.DlcSpearhead1944) yield return "spe";
+        if (p.DlcReactionForces) yield return "rf";
+        if (p.DlcExpeditionaryForces) yield return "ef";
     }
 
     // Windows paths cannot contain double-quotes; strip any defensively so a stray quote can't break the arg.

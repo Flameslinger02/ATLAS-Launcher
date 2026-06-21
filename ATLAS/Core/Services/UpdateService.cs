@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using Atlas.Core.Models;
 using Octokit;
@@ -59,6 +61,15 @@ public sealed class UpdateService : IUpdateService
             result.PublishedAt = (release.PublishedAt ?? release.CreatedAt).UtcDateTime;
             result.ReleaseNotesSummary = Summarize(release.Body);
 
+            // Locate the portable single-file asset for self-update (the CI publishes a bare "ATLAS.exe").
+            var asset = release.Assets?.FirstOrDefault(a =>
+                string.Equals(a.Name, "ATLAS.exe", StringComparison.OrdinalIgnoreCase));
+            if (asset is not null)
+            {
+                result.AssetDownloadUrl = asset.BrowserDownloadUrl;
+                result.AssetSize = asset.Size;
+            }
+
             var latest = ParseVersion(release.TagName);
             result.LatestVersion = latest is null ? CleanTag(release.TagName) : VersionToDisplay(latest);
 
@@ -109,6 +120,106 @@ public sealed class UpdateService : IUpdateService
             Log.Warning(ex, "Failed to open release page {Url}.", url);
         }
     }
+
+    public async Task<string> DownloadUpdateAsync(UpdateCheckResult result, IProgress<double>? progress,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(result.AssetDownloadUrl))
+            throw new InvalidOperationException("The latest release has no downloadable ATLAS.exe asset.");
+
+        var dir = Path.Combine(Path.GetTempPath(), "ATLAS_update");
+        Directory.CreateDirectory(dir);
+        var dest = Path.Combine(dir, "ATLAS.exe");
+
+        // NOTE: the portable build is unsigned, so there is no code-signature to verify; we verify the
+        // downloaded byte length against the GitHub-published asset size instead (best-effort integrity).
+        using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd(AppConstants.AppName);
+
+        using var resp = await http
+            .GetAsync(result.AssetDownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct)
+            .ConfigureAwait(false);
+        resp.EnsureSuccessStatusCode();
+        var total = resp.Content.Headers.ContentLength ?? result.AssetSize;
+
+        await using (var src = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
+        await using (var dst = new FileStream(dest, System.IO.FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            var buffer = new byte[81920];
+            long readTotal = 0;
+            int n;
+            while ((n = await src.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+            {
+                await dst.WriteAsync(buffer.AsMemory(0, n), ct).ConfigureAwait(false);
+                readTotal += n;
+                if (total is > 0) progress?.Report(Math.Clamp((double)readTotal / total.Value, 0, 1));
+            }
+        }
+
+        if (result.AssetSize is > 0)
+        {
+            var actual = new FileInfo(dest).Length;
+            if (actual != result.AssetSize.Value)
+            {
+                try { File.Delete(dest); } catch { /* best effort */ }
+                throw new IOException(
+                    $"Downloaded update is {actual:N0} bytes but the release lists {result.AssetSize.Value:N0}. Aborting.");
+            }
+        }
+
+        progress?.Report(1);
+        Log.Information("Downloaded update to {Dest} ({Bytes:N0} bytes).", dest, new FileInfo(dest).Length);
+        return dest;
+    }
+
+    public void ApplyUpdateAndRestart(string downloadedExePath)
+    {
+        var target = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(target))
+            throw new InvalidOperationException("Could not resolve the running ATLAS executable path.");
+        if (!File.Exists(downloadedExePath))
+            throw new FileNotFoundException("The downloaded update was not found.", downloadedExePath);
+
+        var pid = Environment.ProcessId;
+        var scriptPath = Path.Combine(Path.GetTempPath(), "ATLAS_update", "apply-update.ps1");
+        File.WriteAllText(scriptPath, HelperScript);
+
+        // Detached, hidden helper: waits for us to exit, swaps the exe, relaunches ATLAS, then self-deletes.
+        var psi = new ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            UseShellExecute = true,          // independent of this process so it survives our shutdown
+            WindowStyle = ProcessWindowStyle.Hidden,
+            Arguments = $"-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"{scriptPath}\" " +
+                        $"-TargetPid {pid} -New \"{downloadedExePath}\" -Target \"{target}\"",
+        };
+        Process.Start(psi);
+        Log.Information("Launched update helper (pid {Pid} → swap {Target}).", pid, target);
+
+        // Let the current call unwind, then shut down so the helper can replace the locked exe.
+        System.Windows.Application.Current?.Dispatcher.InvokeAsync(() => System.Windows.Application.Current!.Shutdown());
+    }
+
+    /// <summary>
+    /// PowerShell helper that waits for ATLAS to exit, copies the new exe over the running one (retrying past
+    /// any lingering file lock), relaunches it, then removes the temp exe and itself. Best-effort: if the copy
+    /// fails (e.g. the exe sits in a write-protected dir) the temp exe is left in place.
+    /// </summary>
+    private const string HelperScript = """
+        param([int]$TargetPid, [string]$New, [string]$Target)
+        try { Wait-Process -Id $TargetPid -Timeout 60 -ErrorAction SilentlyContinue } catch {}
+        $ok = $false
+        for ($i = 0; $i -lt 30; $i++) {
+            try {
+                Copy-Item -LiteralPath $New -Destination $Target -Force -ErrorAction Stop
+                $ok = $true
+                break
+            } catch { Start-Sleep -Milliseconds 500 }
+        }
+        try { Start-Process -FilePath $Target } catch {}
+        if ($ok) { try { Remove-Item -LiteralPath $New -Force -ErrorAction SilentlyContinue } catch {} }
+        try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
+        """;
 
     // ----------------------------------------------------------------- helpers
 

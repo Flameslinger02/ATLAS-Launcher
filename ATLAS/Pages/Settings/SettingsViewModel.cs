@@ -55,6 +55,9 @@ public partial class SettingsViewModel : BaseViewModel
     // ----- Theme -----
     [ObservableProperty] private bool _isLightTheme;
 
+    // ----- Danger zone -----
+    [ObservableProperty] private bool _wipeAllData;
+
     // ----- Shell -----
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string _busyStatus = string.Empty;
@@ -272,11 +275,31 @@ public partial class SettingsViewModel : BaseViewModel
             {
                 var notes = string.IsNullOrWhiteSpace(result.ReleaseNotesSummary)
                     ? string.Empty : $"\n\n{result.ReleaseNotesSummary}";
-                if (await _dialogs.ConfirmAsync("Update Available",
-                        $"A newer version is available: v{result.LatestVersion} (you have v{result.CurrentVersion}).{notes}",
-                        "View Release", "Close") && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
-                    _updates.OpenReleasePage(result.ReleaseUrl!);
-                StatusMessage = $"Update available: v{result.LatestVersion}.";
+
+                if (string.IsNullOrWhiteSpace(result.AssetDownloadUrl))
+                {
+                    // Newer release exists but has no portable ATLAS.exe asset to swap — offer the browser.
+                    if (await _dialogs.ConfirmAsync("Update Available",
+                            $"A newer version is available: v{result.LatestVersion} (you have v{result.CurrentVersion}).{notes}",
+                            "View Release", "Close") && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
+                        _updates.OpenReleasePage(result.ReleaseUrl!);
+                    StatusMessage = $"Update available: v{result.LatestVersion}.";
+                }
+                else if (await _dialogs.ConfirmAsync("Update Available",
+                        $"A newer version is available: v{result.LatestVersion} (you have v{result.CurrentVersion}).\n\n" +
+                        $"ATLAS will download the update, then close and relaunch automatically.{notes}",
+                        "Update & Restart", "Later"))
+                {
+                    BusyStatus = "Downloading update…";
+                    var dl = new Progress<double>(p => OnUi(() => BusyPercent = (int)Math.Round(p * 100)));
+                    var path = await _updates.DownloadUpdateAsync(result, dl, ct);
+                    BusyStatus = "Restarting to apply…";
+                    _updates.ApplyUpdateAndRestart(path);   // launches the swap helper, then shuts the app down
+                }
+                else
+                {
+                    StatusMessage = $"Update available: v{result.LatestVersion}.";
+                }
             }
             else
             {
@@ -405,6 +428,119 @@ public partial class SettingsViewModel : BaseViewModel
             await _dialogs.ShowErrorAsync("Clear Database", ex.Message);
         }
     }
+
+    /// <summary>
+    /// Removes ATLAS's files. Always clears the regenerable app files (SteamCMD download, headless profiles,
+    /// logs); when <see cref="WipeAllData"/> is set, also deletes settings.json + the profiles database (a full
+    /// wipe). The running ATLAS.exe can't delete itself, so a detached helper removes it after the app exits.
+    /// Any missing files or delete errors are collected and shown before closing.
+    /// </summary>
+    [RelayCommand]
+    private async Task Uninstall()
+    {
+        var wipe = WipeAllData;
+        var scope = wipe
+            ? "This deletes ALL ATLAS files — SteamCMD download, headless profiles, logs, your settings " +
+              "(including saved Steam/Discord keys) and the profiles database — and removes ATLAS.exe, then closes."
+            : "This removes ATLAS.exe plus regenerable files (SteamCMD download, headless profiles, logs). " +
+              "Your settings and profiles database are kept. ATLAS then closes.";
+        var typed = await _dialogs.PromptWithValidationAsync("Uninstall ATLAS",
+            scope + "\n\nType UNINSTALL to confirm.",
+            v => string.Equals(v?.Trim(), "UNINSTALL", StringComparison.Ordinal) ? null : "Type UNINSTALL to proceed.");
+        if (typed is null) return;
+
+        var report = new List<string>();
+        void Del(string path, bool isDir)
+        {
+            try
+            {
+                if (isDir)
+                {
+                    if (Directory.Exists(path)) { Directory.Delete(path, recursive: true); report.Add($"Deleted    {path}"); }
+                    else report.Add($"Not found  {path}");
+                }
+                else
+                {
+                    if (File.Exists(path)) { File.Delete(path); report.Add($"Deleted    {path}"); }
+                    else report.Add($"Not found  {path}");
+                }
+            }
+            catch (Exception ex) { report.Add($"ERROR      {path} — {ex.Message}"); }
+        }
+
+        // Regenerable app files — always.
+        Del(AppConstants.SteamCmdDirectory, true);
+        Del(AppConstants.HeadlessClientProfilesDirectory, true);
+
+        if (wipe)
+        {
+            // Release pooled SQLite handles so the database file can be removed.
+            try { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); } catch { /* best effort */ }
+            Del(AppConstants.DatabasePath, false);
+            Del(AppConstants.DatabasePath + "-wal", false);
+            Del(AppConstants.DatabasePath + "-shm", false);
+            Del(AppConstants.SettingsPath, false);
+        }
+
+        // Logs last: Serilog holds today's file open, so flush + close the logger before removing the folder.
+        Log.Information("Uninstall requested (wipeData={Wipe}); closing logger to remove the Logs folder.", wipe);
+        Serilog.Log.CloseAndFlush();
+        Del(AppConstants.LogsDirectory, true);
+        if (wipe) Del(AppConstants.AppDataRoot, true);   // remove any remaining/empty app-data root
+
+        // The running exe can't delete itself — a detached helper does it once we've exited.
+        var exe = Environment.ProcessPath;
+        report.Add(string.IsNullOrWhiteSpace(exe)
+            ? "Skipped    ATLAS.exe (path could not be resolved — delete it manually)"
+            : $"On close   {exe} (removed by helper after exit)");
+
+        var summary = "Uninstall results:\n\n" + string.Join("\n", report) +
+                      "\n\nATLAS will now close" + (string.IsNullOrWhiteSpace(exe) ? "." : " and remove its program file.");
+        await _dialogs.ShowInfoAsync("Uninstall ATLAS", summary);
+
+        LaunchUninstallHelper(exe, wipe);
+        OnUi(() => Application.Current?.Shutdown());
+    }
+
+    private static void LaunchUninstallHelper(string? exePath, bool wipeData)
+    {
+        try
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "ATLAS_uninstall");
+            Directory.CreateDirectory(dir);
+            var script = Path.Combine(dir, "uninstall.ps1");
+            File.WriteAllText(script, UninstallHelperScript);
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                Arguments = $"-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"{script}\" " +
+                            $"-TargetPid {Environment.ProcessId} -Exe \"{exePath}\" " +
+                            $"-AppData \"{AppConstants.AppDataRoot}\" -WipeData {(wipeData ? 1 : 0)}",
+            };
+            Process.Start(psi);
+        }
+        catch (Exception ex) { Log.Warning(ex, "Failed to launch the uninstall helper."); }
+    }
+
+    /// <summary>Detached helper: waits for ATLAS to exit, then (optionally) force-removes the app-data folder as
+    /// a backstop and deletes ATLAS.exe, retrying past the file lock, then self-deletes.</summary>
+    private const string UninstallHelperScript = """
+        param([int]$TargetPid, [string]$Exe, [string]$AppData, [int]$WipeData)
+        try { Wait-Process -Id $TargetPid -Timeout 60 -ErrorAction SilentlyContinue } catch {}
+        Start-Sleep -Milliseconds 500
+        if ($WipeData -eq 1 -and $AppData -and (Test-Path -LiteralPath $AppData)) {
+            try { Remove-Item -LiteralPath $AppData -Recurse -Force -ErrorAction SilentlyContinue } catch {}
+        }
+        if ($Exe) {
+            for ($i = 0; $i -lt 20; $i++) {
+                if (-not (Test-Path -LiteralPath $Exe)) { break }
+                try { Remove-Item -LiteralPath $Exe -Force -ErrorAction Stop; break } catch { Start-Sleep -Milliseconds 500 }
+            }
+        }
+        try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
+        """;
 
     // ----------------------------------------------------------------- helpers
 

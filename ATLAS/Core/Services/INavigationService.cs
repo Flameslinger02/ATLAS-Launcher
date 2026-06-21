@@ -17,4 +17,18 @@ public interface INavigationService
 
     /// <summary>Navigates to the page registered under <paramref name="pageKey"/>.</summary>
     void NavigateTo(string pageKey);
+
+    /// <summary>
+    /// Asks the current view whether it's OK to navigate away. If the current view's DataContext
+    /// implements <see cref="INavigationGuard"/>, its <see cref="INavigationGuard.CanLeaveAsync"/> is
+    /// awaited; otherwise returns true. Call this before changing the active profile / navigating.
+    /// </summary>
+    Task<bool> ConfirmLeaveAsync();
+}
+
+/// <summary>Implemented by a page's view model to veto/handle navigation away (e.g. unsaved edits).</summary>
+public interface INavigationGuard
+{
+    /// <summary>Return true to allow leaving the page; false to cancel the navigation.</summary>
+    Task<bool> CanLeaveAsync();
 }

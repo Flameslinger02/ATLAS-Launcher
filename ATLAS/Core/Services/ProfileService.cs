@@ -19,6 +19,9 @@ public sealed class ProfileService : IProfileService
 
     public ServerProfile? ActiveProfile => _activeProfile;
     public event EventHandler<ServerProfile>? ActiveProfileChanged;
+    public event EventHandler? ProfilesChanged;
+
+    private void RaiseProfilesChanged() => ProfilesChanged?.Invoke(this, EventArgs.Empty);
 
     public void SetActiveProfile(ServerProfile profile)
     {
@@ -189,6 +192,7 @@ WHERE pm.ProfileId = @id ORDER BY pm.LoadOrder;";
             await SaveChildrenAsync(conn, tx, profile);
             await tx.CommitAsync();
             Log.Information("Created profile '{Name}' (Id {Id}).", profile.Name, profile.Id);
+            RaiseProfilesChanged();
             return profile;
         }
         finally
@@ -228,6 +232,7 @@ WHERE pm.ProfileId = @id ORDER BY pm.LoadOrder;";
         }
 
         if (_activeProfile?.Id == profile.Id) SetActiveProfile(profile);
+        RaiseProfilesChanged();
     }
 
     public async Task DeleteProfileAsync(int id)
@@ -247,6 +252,7 @@ WHERE pm.ProfileId = @id ORDER BY pm.LoadOrder;";
             _db.WriteLock.Release();
         }
         if (_activeProfile?.Id == id) _activeProfile = null;
+        RaiseProfilesChanged();
     }
 
     public async Task<ServerProfile> CloneProfileAsync(int id, string newName)
@@ -287,6 +293,7 @@ WHERE pm.ProfileId = @id ORDER BY pm.LoadOrder;";
         {
             _db.WriteLock.Release();
         }
+        RaiseProfilesChanged();
     }
 
     // ------------------------------------------------------------------ import / export
@@ -510,7 +517,20 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         "UseHeadlessClients", "HeadlessClientCount", "HeadlessClientExePath", "HeadlessAutoRestart",
         "ActiveModPresetId",
         "AutoRestartOnCrash", "AutoRestartDelaySecs", "MaxCrashesBeforeGiveUp",
-        "CustomLaunchParameters"
+        "CustomLaunchParameters",
+        "DlcContact", "DlcGlobalMobilization", "DlcPrairieFire", "DlcCsla",
+        "DlcWesternSahara", "DlcSpearhead1944", "DlcReactionForces", "DlcExpeditionaryForces",
+        "RequiredBuild", "VonCodecLegacy", "ServerCommandPassword",
+        "OnUserConnected", "OnUserDisconnected", "OnHackedData", "OnDifferentData",
+        "OnUnsignedData", "OnUserKicked",
+        "MaxCustomFileSize", "MaxPacketSize",
+        "AutoSelectMission", "RandomMissionOrder", "SkipLobby",
+        "DiffGroupIndicators", "DiffFriendlyTags", "DiffEnemyTags", "DiffDetectedMines", "DiffCommands",
+        "DiffWaypoints", "DiffWeaponInfo", "DiffStanceIndicator", "DiffThirdPersonView", "DiffReducedDamage",
+        "DiffStaminaBar", "DiffWeaponCrosshair", "DiffVisionAid", "DiffCameraShake", "DiffScoreTable",
+        "DiffDeathMessages", "DiffVonID", "DiffMapContentFriendly", "DiffMapContentEnemy", "DiffMapContentMines",
+        "DiffAutoReport", "DiffMultipleSaves", "DiffTacticalPing",
+        "SkillAI", "PrecisionAI", "ViewDistance", "ObjectViewDistance", "TerrainGrid"
     };
 
     private static void AddScalarParameters(SqliteCommand cmd, ServerProfile p)
@@ -593,6 +613,56 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         cmd.Parameters.AddWithValue("@AutoRestartDelaySecs", p.AutoRestartDelaySeconds);
         cmd.Parameters.AddWithValue("@MaxCrashesBeforeGiveUp", p.MaxCrashesBeforeGiveUp);
         cmd.Parameters.AddWithValue("@CustomLaunchParameters", p.CustomLaunchParameters);
+        cmd.Parameters.AddWithValue("@DlcContact", p.DlcContact);
+        cmd.Parameters.AddWithValue("@DlcGlobalMobilization", p.DlcGlobalMobilization);
+        cmd.Parameters.AddWithValue("@DlcPrairieFire", p.DlcPrairieFire);
+        cmd.Parameters.AddWithValue("@DlcCsla", p.DlcCsla);
+        cmd.Parameters.AddWithValue("@DlcWesternSahara", p.DlcWesternSahara);
+        cmd.Parameters.AddWithValue("@DlcSpearhead1944", p.DlcSpearhead1944);
+        cmd.Parameters.AddWithValue("@DlcReactionForces", p.DlcReactionForces);
+        cmd.Parameters.AddWithValue("@DlcExpeditionaryForces", p.DlcExpeditionaryForces);
+        cmd.Parameters.AddWithValue("@RequiredBuild", p.RequiredBuild);
+        cmd.Parameters.AddWithValue("@VonCodecLegacy", p.VonCodecLegacy);
+        cmd.Parameters.AddWithValue("@ServerCommandPassword", p.ServerCommandPassword);
+        cmd.Parameters.AddWithValue("@OnUserConnected", p.OnUserConnected);
+        cmd.Parameters.AddWithValue("@OnUserDisconnected", p.OnUserDisconnected);
+        cmd.Parameters.AddWithValue("@OnHackedData", p.OnHackedData);
+        cmd.Parameters.AddWithValue("@OnDifferentData", p.OnDifferentData);
+        cmd.Parameters.AddWithValue("@OnUnsignedData", p.OnUnsignedData);
+        cmd.Parameters.AddWithValue("@OnUserKicked", p.OnUserKicked);
+        cmd.Parameters.AddWithValue("@MaxCustomFileSize", p.MaxCustomFileSize);
+        cmd.Parameters.AddWithValue("@MaxPacketSize", p.MaxPacketSize);
+        cmd.Parameters.AddWithValue("@AutoSelectMission", p.AutoSelectMission);
+        cmd.Parameters.AddWithValue("@RandomMissionOrder", p.RandomMissionOrder);
+        cmd.Parameters.AddWithValue("@SkipLobby", p.SkipLobby);
+        cmd.Parameters.AddWithValue("@DiffGroupIndicators", p.DiffGroupIndicators);
+        cmd.Parameters.AddWithValue("@DiffFriendlyTags", p.DiffFriendlyTags);
+        cmd.Parameters.AddWithValue("@DiffEnemyTags", p.DiffEnemyTags);
+        cmd.Parameters.AddWithValue("@DiffDetectedMines", p.DiffDetectedMines);
+        cmd.Parameters.AddWithValue("@DiffCommands", p.DiffCommands);
+        cmd.Parameters.AddWithValue("@DiffWaypoints", p.DiffWaypoints);
+        cmd.Parameters.AddWithValue("@DiffWeaponInfo", p.DiffWeaponInfo);
+        cmd.Parameters.AddWithValue("@DiffStanceIndicator", p.DiffStanceIndicator);
+        cmd.Parameters.AddWithValue("@DiffThirdPersonView", p.DiffThirdPersonView);
+        cmd.Parameters.AddWithValue("@DiffReducedDamage", p.DiffReducedDamage);
+        cmd.Parameters.AddWithValue("@DiffStaminaBar", p.DiffStaminaBar);
+        cmd.Parameters.AddWithValue("@DiffWeaponCrosshair", p.DiffWeaponCrosshair);
+        cmd.Parameters.AddWithValue("@DiffVisionAid", p.DiffVisionAid);
+        cmd.Parameters.AddWithValue("@DiffCameraShake", p.DiffCameraShake);
+        cmd.Parameters.AddWithValue("@DiffScoreTable", p.DiffScoreTable);
+        cmd.Parameters.AddWithValue("@DiffDeathMessages", p.DiffDeathMessages);
+        cmd.Parameters.AddWithValue("@DiffVonID", p.DiffVonID);
+        cmd.Parameters.AddWithValue("@DiffMapContentFriendly", p.DiffMapContentFriendly);
+        cmd.Parameters.AddWithValue("@DiffMapContentEnemy", p.DiffMapContentEnemy);
+        cmd.Parameters.AddWithValue("@DiffMapContentMines", p.DiffMapContentMines);
+        cmd.Parameters.AddWithValue("@DiffAutoReport", p.DiffAutoReport);
+        cmd.Parameters.AddWithValue("@DiffMultipleSaves", p.DiffMultipleSaves);
+        cmd.Parameters.AddWithValue("@DiffTacticalPing", p.DiffTacticalPing);
+        cmd.Parameters.AddWithValue("@SkillAI", p.SkillAI);
+        cmd.Parameters.AddWithValue("@PrecisionAI", p.PrecisionAI);
+        cmd.Parameters.AddWithValue("@ViewDistance", p.ViewDistance);
+        cmd.Parameters.AddWithValue("@ObjectViewDistance", p.ObjectViewDistance);
+        cmd.Parameters.AddWithValue("@TerrainGrid", p.TerrainGrid);
     }
 
     private static ServerProfile MapScalars(SqliteDataReader r)
@@ -620,7 +690,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             ArmaProfileName = S("ArmaProfileName"),
             Port = I("Port"),
             EnableBattlEye = B("EnableBattlEye"),
-            FilePatching = B("FilePatching"),
+            FilePatching = I("FilePatching"),
             NoSound = B("NoSound"),
             NoSplash = B("NoSplash"),
             SkipIntro = B("SkipIntro"),
@@ -685,6 +755,56 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             AutoRestartDelaySeconds = I("AutoRestartDelaySecs"),
             MaxCrashesBeforeGiveUp = I("MaxCrashesBeforeGiveUp"),
             CustomLaunchParameters = S("CustomLaunchParameters"),
+            DlcContact = B("DlcContact"),
+            DlcGlobalMobilization = B("DlcGlobalMobilization"),
+            DlcPrairieFire = B("DlcPrairieFire"),
+            DlcCsla = B("DlcCsla"),
+            DlcWesternSahara = B("DlcWesternSahara"),
+            DlcSpearhead1944 = B("DlcSpearhead1944"),
+            DlcReactionForces = B("DlcReactionForces"),
+            DlcExpeditionaryForces = B("DlcExpeditionaryForces"),
+            RequiredBuild = I("RequiredBuild"),
+            VonCodecLegacy = B("VonCodecLegacy"),
+            ServerCommandPassword = S("ServerCommandPassword"),
+            OnUserConnected = S("OnUserConnected"),
+            OnUserDisconnected = S("OnUserDisconnected"),
+            OnHackedData = S("OnHackedData"),
+            OnDifferentData = S("OnDifferentData"),
+            OnUnsignedData = S("OnUnsignedData"),
+            OnUserKicked = S("OnUserKicked"),
+            MaxCustomFileSize = I("MaxCustomFileSize"),
+            MaxPacketSize = I("MaxPacketSize"),
+            AutoSelectMission = B("AutoSelectMission"),
+            RandomMissionOrder = B("RandomMissionOrder"),
+            SkipLobby = B("SkipLobby"),
+            DiffGroupIndicators = I("DiffGroupIndicators"),
+            DiffFriendlyTags = I("DiffFriendlyTags"),
+            DiffEnemyTags = I("DiffEnemyTags"),
+            DiffDetectedMines = I("DiffDetectedMines"),
+            DiffCommands = I("DiffCommands"),
+            DiffWaypoints = I("DiffWaypoints"),
+            DiffWeaponInfo = I("DiffWeaponInfo"),
+            DiffStanceIndicator = I("DiffStanceIndicator"),
+            DiffThirdPersonView = I("DiffThirdPersonView"),
+            DiffReducedDamage = B("DiffReducedDamage"),
+            DiffStaminaBar = B("DiffStaminaBar"),
+            DiffWeaponCrosshair = B("DiffWeaponCrosshair"),
+            DiffVisionAid = B("DiffVisionAid"),
+            DiffCameraShake = B("DiffCameraShake"),
+            DiffScoreTable = B("DiffScoreTable"),
+            DiffDeathMessages = B("DiffDeathMessages"),
+            DiffVonID = B("DiffVonID"),
+            DiffMapContentFriendly = B("DiffMapContentFriendly"),
+            DiffMapContentEnemy = B("DiffMapContentEnemy"),
+            DiffMapContentMines = B("DiffMapContentMines"),
+            DiffAutoReport = B("DiffAutoReport"),
+            DiffMultipleSaves = B("DiffMultipleSaves"),
+            DiffTacticalPing = B("DiffTacticalPing"),
+            SkillAI = D("SkillAI"),
+            PrecisionAI = D("PrecisionAI"),
+            ViewDistance = I("ViewDistance"),
+            ObjectViewDistance = I("ObjectViewDistance"),
+            TerrainGrid = D("TerrainGrid"),
         };
     }
 }

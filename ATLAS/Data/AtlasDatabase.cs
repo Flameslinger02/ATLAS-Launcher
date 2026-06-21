@@ -91,6 +91,111 @@ public sealed class AtlasDatabase
                     await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
+                // v2 -> v3: creator/platform DLC toggles (loaded via -mod= folder names).
+                if (currentVersion < 3)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcContact INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcGlobalMobilization INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcPrairieFire INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcCsla INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcWesternSahara INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcSpearhead1944 INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcReactionForces INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DlcExpeditionaryForces INTEGER NOT NULL DEFAULT 0;";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
+                // v3 -> v4: requiredBuild, VoN codec type, and server.cfg scripting callbacks.
+                if (currentVersion < 4)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN RequiredBuild INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN VonCodecLegacy INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN ServerCommandPassword TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN OnUserConnected TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN OnUserDisconnected TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN OnHackedData TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN OnDifferentData TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN OnUnsignedData TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN OnUserKicked TEXT NOT NULL DEFAULT '';";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
+                // v4 -> v5: FilePatching became a 3-state (0 none / 1 headless / 2 all). The old bool "on" (1)
+                // meant "all clients", so promote existing 1 -> 2 to preserve behaviour.
+                if (currentVersion < 5)
+                {
+                    await using var patch = conn.CreateCommand();
+                    patch.Transaction = tx;
+                    patch.CommandText = "UPDATE ServerProfiles SET FilePatching = 2 WHERE FilePatching = 1;";
+                    await patch.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
+                // v5 -> v6: basic.cfg max packet size + server.cfg max custom file size.
+                if (currentVersion < 6)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN MaxCustomFileSize INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN MaxPacketSize INTEGER NOT NULL DEFAULT 1400;";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
+                // v6 -> v7: mission flags (auto-select, random order, skip lobby).
+                if (currentVersion < 7)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN AutoSelectMission INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN RandomMissionOrder INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN SkipLobby INTEGER NOT NULL DEFAULT 0;";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
+                // v7 -> v8: Arma3Profile granular difficulty grid + AI level + server view distance.
+                if (currentVersion < 8)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffGroupIndicators INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffFriendlyTags INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffEnemyTags INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffDetectedMines INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffCommands INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffWaypoints INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffWeaponInfo INTEGER NOT NULL DEFAULT 2;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffStanceIndicator INTEGER NOT NULL DEFAULT 2;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffThirdPersonView INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffReducedDamage INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffStaminaBar INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffWeaponCrosshair INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffVisionAid INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffCameraShake INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffScoreTable INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffDeathMessages INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffVonID INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffMapContentFriendly INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffMapContentEnemy INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffMapContentMines INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffAutoReport INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffMultipleSaves INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN DiffTacticalPing INTEGER NOT NULL DEFAULT 1;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN SkillAI REAL NOT NULL DEFAULT 0.6;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN PrecisionAI REAL NOT NULL DEFAULT 0.5;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN ViewDistance INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN ObjectViewDistance INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN TerrainGrid REAL NOT NULL DEFAULT 0;";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
                 await using (var setVersion = conn.CreateCommand())
                 {
                     setVersion.Transaction = tx;

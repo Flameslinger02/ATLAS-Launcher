@@ -1,13 +1,11 @@
+using System.Windows;
 using Atlas.Pages.Console;
 using Atlas.Pages.Dashboard;
 using Atlas.Pages.DiscordBot;
 using Atlas.Pages.HeadlessClients;
-using Atlas.Pages.Missions;
 using Atlas.Pages.ModPresets;
-using Atlas.Pages.Mods;
 using Atlas.Pages.Profiles;
 using Atlas.Pages.Scheduler;
-using Atlas.Pages.ServerConfig;
 using Atlas.Pages.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -30,15 +28,14 @@ public sealed class NavigationService : INavigationService
         _pageMap = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
             [AppConstants.Pages.Dashboard] = typeof(DashboardPage),
-            [AppConstants.Pages.ServerConfig] = typeof(ServerConfigPage),
-            [AppConstants.Pages.Mods] = typeof(ModsPage),
             [AppConstants.Pages.ModPresets] = typeof(ModPresetsPage),
-            [AppConstants.Pages.Missions] = typeof(MissionsPage),
-            [AppConstants.Pages.Profiles] = typeof(ProfilesPage),
+            [AppConstants.Pages.Profiles] = typeof(ProfilesPage),                 // all-profiles overview
+            [AppConstants.Pages.ProfileWorkspace] = typeof(ProfileWorkspacePage), // single-profile editor
             [AppConstants.Pages.HeadlessClients] = typeof(HeadlessClientsPage),
             [AppConstants.Pages.DiscordBot] = typeof(DiscordBotPage),
             [AppConstants.Pages.Scheduler] = typeof(SchedulerPage),
-            [AppConstants.Pages.Console] = typeof(ConsolePage),
+            [AppConstants.Pages.Console] = typeof(ConsolePage),   // logs + updates
+            [AppConstants.Pages.Rcon] = typeof(RconPage),         // live RCON management
             [AppConstants.Pages.Settings] = typeof(SettingsPage),
         };
     }
@@ -63,5 +60,12 @@ public sealed class NavigationService : INavigationService
         {
             Log.Error(ex, "Failed to navigate to page '{Key}'.", pageKey);
         }
+    }
+
+    public async Task<bool> ConfirmLeaveAsync()
+    {
+        if (CurrentView is FrameworkElement { DataContext: INavigationGuard guard })
+            return await guard.CanLeaveAsync();
+        return true;
     }
 }

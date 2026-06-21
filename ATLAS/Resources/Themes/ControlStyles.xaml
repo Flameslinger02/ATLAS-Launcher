@@ -150,6 +150,10 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="MinHeight" Value="30"/>
+        <!-- Floor width so combos without an explicit Width don't collapse to just the selected
+             text. Equal to the narrowest intentional combo (120) so explicit-width combos are
+             unaffected; stretching combos still fill their container. -->
+        <Setter Property="MinWidth" Value="120"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -191,5 +195,76 @@
 
     <!-- App-wide default so combos without a local style are themed too. -->
     <Style TargetType="ComboBox" BasedOn="{StaticResource Atlas.ComboBox}"/>
+
+    <!-- ============================================================
+         App-wide DataGrid column styling: black column edges, a sort-direction
+         arrow, a resize gripper, and tight cells with a selection highlight.
+         Applies to every DataGrid so all tables look consistent.
+         ============================================================ -->
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+        <Setter Property="Background" Value="{DynamicResource Atlas.Brush.SurfaceRaised}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Grid>
+                        <Border Background="{TemplateBinding Background}" BorderBrush="Black"
+                                BorderThickness="0,0,1,0" Padding="3,6">
+                            <DockPanel>
+                                <Path x:Name="SortArrow" DockPanel.Dock="Right" Width="9" Height="6"
+                                      Margin="4,0,0,0" Stretch="Fill" VerticalAlignment="Center"
+                                      Fill="{DynamicResource Atlas.Brush.TextSecondary}"
+                                      Data="M 0,0 L 9,0 L 4.5,6 Z" Visibility="Collapsed"
+                                      RenderTransformOrigin="0.5,0.5"/>
+                                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            </DockPanel>
+                        </Border>
+                        <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"
+                               Width="8" Cursor="SizeWE">
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb"><Border Background="Transparent"/></ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="SortDirection" Value="Ascending">
+                            <Setter TargetName="SortArrow" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="SortArrow" Property="RenderTransform">
+                                <Setter.Value><RotateTransform Angle="180"/></Setter.Value>
+                            </Setter>
+                        </Trigger>
+                        <Trigger Property="SortDirection" Value="Descending">
+                            <Setter TargetName="SortArrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="DataGridCell">
+        <Setter Property="Padding" Value="2,0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border x:Name="CellBd" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="CellBd" Property="Background" Value="{DynamicResource Atlas.Brush.SurfaceRaised}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
 </ResourceDictionary>

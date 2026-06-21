@@ -21,6 +21,12 @@ public sealed class UpdateCheckResult
     /// <summary>When the latest release was published.</summary>
     public DateTime? PublishedAt { get; set; }
 
+    /// <summary>Direct download URL of the release's <c>ATLAS.exe</c> asset, when present (for self-update).</summary>
+    public string? AssetDownloadUrl { get; set; }
+
+    /// <summary>Size in bytes of the <c>ATLAS.exe</c> asset, for a post-download integrity check. Null when unknown.</summary>
+    public long? AssetSize { get; set; }
+
     /// <summary>Set when the check could not complete (network/API). Null on success.</summary>
     public string? Error { get; set; }
 }

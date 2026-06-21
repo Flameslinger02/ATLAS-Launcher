@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using Atlas.Core.Services;
+using Atlas.Pages.Profiles;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MaterialDesignThemes.Wpf;
@@ -31,7 +32,14 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _updateBannerText = string.Empty;
     private string? _releaseUrl;
 
-    public ObservableCollection<NavItem> NavItems { get; }
+    /// <summary>Nav items above the Profiles section (Dashboard).</summary>
+    public ObservableCollection<NavItem> NavItemsTop { get; }
+
+    /// <summary>Nav items below the Profiles section (the rest).</summary>
+    public ObservableCollection<NavItem> NavItemsBottom { get; }
+
+    /// <summary>Profile list + management for the sidebar's Profiles section (shared singleton).</summary>
+    public ProfilesViewModel ProfileNav { get; }
 
     public string VersionText { get; }
 
@@ -40,12 +48,13 @@ public partial class MainViewModel : ObservableObject
     public GridLength SidebarWidth => new(SidebarCollapsed ? 56 : 180);
 
     public MainViewModel(INavigationService navigation, ISettingsService settings, IProfileService profiles,
-        IUpdateService updates)
+        IUpdateService updates, ProfilesViewModel profileNav)
     {
         _navigation = navigation;
         _settings = settings;
         _profiles = profiles;
         _updates = updates;
+        ProfileNav = profileNav;
 
         _navigation.Navigated += (_, view) => CurrentView = view;
 
@@ -57,22 +66,25 @@ public partial class MainViewModel : ObservableObject
 
         _sidebarCollapsed = settings.Settings.SidebarCollapsed;
 
-        NavItems = new ObservableCollection<NavItem>
+        // Sidebar layout: Dashboard, then the Profiles section (rendered specially with the profile
+        // list + "+"), then the rest. Server Config / Mods / Missions are now per-profile tabs in the
+        // profile editor, not top-level pages.
+        NavItemsTop = new ObservableCollection<NavItem>
         {
             new() { Key = AppConstants.Pages.Dashboard,       Label = "Dashboard",        Icon = PackIconKind.ViewDashboard },
-            new() { Key = AppConstants.Pages.Profiles,        Label = "Profiles",         Icon = PackIconKind.AccountMultiple },
-            new() { Key = AppConstants.Pages.ServerConfig,    Label = "Server Config",    Icon = PackIconKind.Tune },
-            new() { Key = AppConstants.Pages.Mods,            Label = "Mods",             Icon = PackIconKind.Puzzle },
+        };
+        NavItemsBottom = new ObservableCollection<NavItem>
+        {
             new() { Key = AppConstants.Pages.ModPresets,      Label = "Mod Presets",      Icon = PackIconKind.PackageVariant },
-            new() { Key = AppConstants.Pages.Missions,        Label = "Missions",         Icon = PackIconKind.Map },
             new() { Key = AppConstants.Pages.HeadlessClients, Label = "Headless Clients", Icon = PackIconKind.Server },
             new() { Key = AppConstants.Pages.DiscordBot,      Label = "Discord Bot",      Icon = PackIconKind.Robot },
             new() { Key = AppConstants.Pages.Scheduler,       Label = "Scheduler",        Icon = PackIconKind.CalendarClock },
-            new() { Key = AppConstants.Pages.Console,         Label = "Console / RCON",   Icon = PackIconKind.Console },
+            new() { Key = AppConstants.Pages.Console,         Label = "Console",          Icon = PackIconKind.Console },
+            new() { Key = AppConstants.Pages.Rcon,            Label = "RCON",             Icon = PackIconKind.ConsoleNetwork },
             new() { Key = AppConstants.Pages.Settings,        Label = "Settings",         Icon = PackIconKind.Cog },
         };
 
-        Navigate(AppConstants.Pages.Dashboard);
+        _navigation.NavigateTo(AppConstants.Pages.Dashboard);
 
         if (_settings.Settings.CheckUpdatesOnStartup)
             _ = CheckForUpdatesOnStartupAsync();
@@ -128,10 +140,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Navigate(string? pageKey)
+    private async Task Navigate(string? pageKey)
     {
         if (string.IsNullOrWhiteSpace(pageKey)) return;
-        _navigation.NavigateTo(pageKey);
+        if (await _navigation.ConfirmLeaveAsync()) _navigation.NavigateTo(pageKey);
     }
 
     [RelayCommand]

@@ -19,6 +19,12 @@ public interface IConfigGeneratorService
     string GenerateBeServerCfg(ServerProfile profile);
 
     /// <summary>
+    /// Builds the server's <c>.Arma3Profile</c> — the granular difficulty grid (CustomDifficulty),
+    /// AI level (CustomAILevel skill/precision) and optional server view distance / terrain grid.
+    /// </summary>
+    string GenerateArma3Profile(ServerProfile profile);
+
+    /// <summary>
     /// Builds the canonical command-line launch arguments (executable + every flag + the resolved
     /// mod list) from the profile. This replaces any ad-hoc argument building elsewhere in the app.
     /// </summary>
