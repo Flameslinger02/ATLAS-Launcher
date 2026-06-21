@@ -22,6 +22,9 @@ public class ServerProfile
     public bool UseProfilingBranch { get; set; }
     public string ServerDirectory { get; set; } = string.Empty;
 
+    /// <summary>Optional override for the mission scan folder. Blank = scan the server's MPMissions/Missions.</summary>
+    public string MissionDirectory { get; set; } = string.Empty;
+
     // Launch parameters
     public string ArmaProfileName { get; set; } = "ATLAS";
     public int Port { get; set; } = AppConstants.DefaultGamePort;
@@ -70,6 +73,8 @@ public class ServerProfile
     public double MinErrorToSend { get; set; } = 0.001;
     public double MinErrorToSendNear { get; set; } = 0.01;
     public bool Loopback { get; set; }
+    /// <summary>Writes <c>upnp = 1;</c> to server.cfg so the server maps its ports via a UPnP/IGD router.</summary>
+    public bool Upnp { get; set; }
     public int DisconnectTimeout { get; set; } = 5;
     public int MaxDisconnectTimeout { get; set; } = 90;
 

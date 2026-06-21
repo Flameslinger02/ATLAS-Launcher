@@ -4,7 +4,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="ATLAS — Arma Tactical Launch and Administration System"
         Icon="pack://application:,,,/Resources/atlas_icon.ico"
-        Width="1280" Height="800" MinWidth="1000" MinHeight="640"
+        Width="1280" Height="800" MinWidth="1250" MinHeight="640"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource Atlas.Brush.Background}"
         TextElement.Foreground="{DynamicResource Atlas.Brush.TextPrimary}"

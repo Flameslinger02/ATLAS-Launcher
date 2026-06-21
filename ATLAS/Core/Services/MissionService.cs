@@ -10,19 +10,25 @@ public sealed partial class MissionService : IMissionService
     /// <summary>The mission subfolders scanned under a server directory.</summary>
     private static readonly string[] MissionFolders = { "MPMissions", "Missions" };
 
-    public async Task<List<MissionInfo>> ScanMissionsAsync(string serverDirectory)
+    public async Task<List<MissionInfo>> ScanMissionsAsync(string serverDirectory, string? missionFolderOverride = null)
     {
-        if (string.IsNullOrWhiteSpace(serverDirectory))
+        var hasOverride = !string.IsNullOrWhiteSpace(missionFolderOverride);
+        if (!hasOverride && string.IsNullOrWhiteSpace(serverDirectory))
             return new List<MissionInfo>();
 
         return await Task.Run(() =>
         {
             var results = new List<MissionInfo>();
 
-            foreach (var folder in MissionFolders)
+            // Either the explicit override folder, or the default MPMissions/Missions under the server dir.
+            var dirs = hasOverride
+                ? new[] { missionFolderOverride!.Trim() }
+                : MissionFolders.Select(f => Path.Combine(serverDirectory, f)).ToArray();
+
+            foreach (var dir in dirs)
             {
-                var dir = Path.Combine(serverDirectory, folder);
                 if (!Directory.Exists(dir)) continue;
+                var folderName = Path.GetFileName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 
                 try
                 {
@@ -32,7 +38,7 @@ public sealed partial class MissionService : IMissionService
                         var info = ParsePboFileName(fi.Name);
                         info.FileSizeBytes = fi.Length;
                         info.LastModified = fi.LastWriteTime;
-                        info.SourceFolder = folder;
+                        info.SourceFolder = folderName;
                         results.Add(info);
                     }
                 }
@@ -85,9 +91,9 @@ public sealed partial class MissionService : IMissionService
         };
     }
 
-    public async Task<string[]> GetAvailableMissionNamesAsync(string serverDirectory)
+    public async Task<string[]> GetAvailableMissionNamesAsync(string serverDirectory, string? missionFolderOverride = null)
     {
-        var missions = await ScanMissionsAsync(serverDirectory).ConfigureAwait(false);
+        var missions = await ScanMissionsAsync(serverDirectory, missionFolderOverride).ConfigureAwait(false);
         return missions
             .Select(m => m.FullPboName)
             .Distinct()

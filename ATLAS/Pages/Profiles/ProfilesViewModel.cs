@@ -14,6 +14,8 @@ public partial class ProfilesViewModel : BaseViewModel
     private readonly IProfileService _profiles;
     private readonly IDialogService _dialogs;
     private readonly IProfileEditorLauncher _editor;
+    private readonly ISettingsService _settings;
+    private readonly IArmaInstallLocator _arma;
 
     public ObservableCollection<ServerProfile> Profiles { get; } = new();
 
@@ -22,11 +24,14 @@ public partial class ProfilesViewModel : BaseViewModel
     /// <summary>Id of the active profile (or -1). Used by the list to highlight the active row.</summary>
     public int ActiveProfileId => _profiles.ActiveProfile?.Id ?? -1;
 
-    public ProfilesViewModel(IProfileService profiles, IDialogService dialogs, IProfileEditorLauncher editor)
+    public ProfilesViewModel(IProfileService profiles, IDialogService dialogs, IProfileEditorLauncher editor,
+        ISettingsService settings, IArmaInstallLocator arma)
     {
         _profiles = profiles;
         _dialogs = dialogs;
         _editor = editor;
+        _settings = settings;
+        _arma = arma;
         Title = "Profiles";
 
         // This view model is transient: a fresh instance is created on every navigation, and
@@ -61,6 +66,7 @@ public partial class ProfilesViewModel : BaseViewModel
     private async Task NewProfile()
     {
         var profile = new ServerProfile { Name = await UniqueDefaultNameAsync() };
+        PrefillServerPaths(profile);
         if (await _editor.EditAsync(profile, isNew: true))
         {
             var created = await _profiles.CreateProfileAsync(profile);
@@ -155,6 +161,19 @@ public partial class ProfilesViewModel : BaseViewModel
         {
             await _dialogs.ShowErrorAsync("Import failed", ex.Message);
         }
+    }
+
+    /// <summary>Pre-fills a new profile's server directory/exe from the global Arma install (Settings or auto-detect).</summary>
+    private void PrefillServerPaths(ServerProfile profile)
+    {
+        var dir = !string.IsNullOrWhiteSpace(_settings.Settings.ArmaServerDirectory)
+            ? _settings.Settings.ArmaServerDirectory
+            : _arma.FindServerDirectory();
+        if (string.IsNullOrWhiteSpace(dir)) return;
+
+        profile.ServerDirectory = dir!;
+        var exe = ArmaInstallLocator.FindServerExecutable(dir);
+        if (exe is not null) profile.ServerExecutablePath = exe;
     }
 
     private async Task<string> UniqueDefaultNameAsync()

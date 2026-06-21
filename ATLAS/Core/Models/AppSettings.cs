@@ -10,6 +10,9 @@ public class AppSettings
     public string SteamCmdPath { get; set; } = string.Empty;
     public string ModStagingDirectory { get; set; } = string.Empty;
 
+    /// <summary>Auto-detected (and editable) Arma 3 server install directory; used to pre-fill new profiles.</summary>
+    public string ArmaServerDirectory { get; set; } = string.Empty;
+
     /// <summary>DPAPI-encrypted Steam Web API key (Phase 0 Q10). Empty when unset.</summary>
     public string SteamApiKeyEncrypted { get; set; } = string.Empty;
 

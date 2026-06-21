@@ -52,6 +52,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L($"disconnectTimeout = {p.DisconnectTimeout};");
         L($"maxdisconnectTimeout = {p.MaxDisconnectTimeout};");
         if (p.Loopback) L("loopback = 1;");
+        if (p.Upnp) L("upnp = 1;");   // server maps its own ports via a UPnP/IGD router
         L();
 
         L("// --- Security ---");

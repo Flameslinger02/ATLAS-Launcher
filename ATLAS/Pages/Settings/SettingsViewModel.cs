@@ -25,6 +25,7 @@ public partial class SettingsViewModel : BaseViewModel
     private readonly IUpdateService _updates;
     private readonly IThemeService _theme;
     private readonly ISteamCmdService _steam;
+    private readonly IArmaInstallLocator _arma;
     private readonly AtlasDatabase _db;
     private readonly LoggingLevelSwitch _levelSwitch;
 
@@ -33,6 +34,7 @@ public partial class SettingsViewModel : BaseViewModel
     // ----- SteamCMD / Steam -----
     [ObservableProperty] private string _steamCmdPath = string.Empty;
     [ObservableProperty] private string _modStagingDirectory = string.Empty;
+    [ObservableProperty] private string _armaServerDirectory = string.Empty;
     [ObservableProperty] private string _steamUsername = string.Empty;
     [ObservableProperty] private bool _rememberSteamCredentials;
     [ObservableProperty] private bool _hasSavedApiKey;
@@ -75,8 +77,8 @@ public partial class SettingsViewModel : BaseViewModel
         string.IsNullOrWhiteSpace(GitHubRepo) ? AppConstants.GitHubRepo : GitHubRepo.Trim();
 
     public SettingsViewModel(ISettingsService settings, ISecretProtector secrets, IDialogService dialogs,
-        IUpdateService updates, IThemeService theme, ISteamCmdService steam, AtlasDatabase db,
-        LoggingLevelSwitch levelSwitch)
+        IUpdateService updates, IThemeService theme, ISteamCmdService steam, IArmaInstallLocator arma,
+        AtlasDatabase db, LoggingLevelSwitch levelSwitch)
     {
         _settings = settings;
         _secrets = secrets;
@@ -84,6 +86,7 @@ public partial class SettingsViewModel : BaseViewModel
         _updates = updates;
         _theme = theme;
         _steam = steam;
+        _arma = arma;
         _db = db;
         _levelSwitch = levelSwitch;
         Title = "Settings";
@@ -100,6 +103,10 @@ public partial class SettingsViewModel : BaseViewModel
         var s = _settings.Settings;
         SteamCmdPath = s.SteamCmdPath;
         ModStagingDirectory = s.ModStagingDirectory;
+        // Show the saved Arma path; if none saved yet, auto-detect from Steam (blank if not found).
+        ArmaServerDirectory = string.IsNullOrWhiteSpace(s.ArmaServerDirectory)
+            ? (_arma.FindServerDirectory() ?? string.Empty)
+            : s.ArmaServerDirectory;
         SteamUsername = s.SteamUsername;
         RememberSteamCredentials = s.RememberSteamCredentials;
         HasSavedApiKey = !string.IsNullOrWhiteSpace(s.SteamApiKeyEncrypted);
@@ -189,6 +196,28 @@ public partial class SettingsViewModel : BaseViewModel
     {
         var dir = await _dialogs.BrowseFolderAsync("Select mod staging directory", ModStagingDirectory);
         if (!string.IsNullOrWhiteSpace(dir)) ModStagingDirectory = dir;
+    }
+
+    // ----------------------------------------------------------------- Arma install
+
+    [RelayCommand]
+    private void DetectArmaServer()
+    {
+        var dir = _arma.FindServerDirectory();
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            StatusMessage = "No Arma 3 server install was found in your Steam libraries.";
+            return;
+        }
+        ArmaServerDirectory = dir;
+        StatusMessage = "Detected Arma 3 server install.";
+    }
+
+    [RelayCommand]
+    private async Task BrowseArmaServer()
+    {
+        var dir = await _dialogs.BrowseFolderAsync("Select the Arma 3 server install directory", ArmaServerDirectory);
+        if (!string.IsNullOrWhiteSpace(dir)) ArmaServerDirectory = dir;
     }
 
     // ----------------------------------------------------------------- Steam API key (code-behind supplies the value)
@@ -312,6 +341,7 @@ public partial class SettingsViewModel : BaseViewModel
         var s = _settings.Settings;
         s.SteamCmdPath = SteamCmdPath?.Trim() ?? string.Empty;
         s.ModStagingDirectory = ModStagingDirectory?.Trim() ?? string.Empty;
+        s.ArmaServerDirectory = ArmaServerDirectory?.Trim() ?? string.Empty;
         s.SteamUsername = SteamUsername?.Trim() ?? string.Empty;
         s.RememberSteamCredentials = RememberSteamCredentials;
         s.AutoStartServerOnLaunch = AutoStartServerOnLaunch;

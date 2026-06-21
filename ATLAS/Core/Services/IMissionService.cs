@@ -8,12 +8,16 @@ namespace Atlas.Core.Services;
 /// </summary>
 public interface IMissionService
 {
-    /// <summary>Scans both mission folders under <paramref name="serverDirectory"/> on a background thread.</summary>
-    Task<List<MissionInfo>> ScanMissionsAsync(string serverDirectory);
+    /// <summary>
+    /// Scans for missions on a background thread. When <paramref name="missionFolderOverride"/> is set, that
+    /// exact folder is scanned; otherwise the default MPMissions/Missions folders under
+    /// <paramref name="serverDirectory"/> are used.
+    /// </summary>
+    Task<List<MissionInfo>> ScanMissionsAsync(string serverDirectory, string? missionFolderOverride = null);
 
     /// <summary>Parses a .pbo file name into a <see cref="MissionInfo"/> (pure; never throws on odd names).</summary>
     MissionInfo ParsePboFileName(string pboFileName);
 
     /// <summary>Distinct, sorted <see cref="MissionInfo.FullPboName"/> values (for Discord autocomplete later).</summary>
-    Task<string[]> GetAvailableMissionNamesAsync(string serverDirectory);
+    Task<string[]> GetAvailableMissionNamesAsync(string serverDirectory, string? missionFolderOverride = null);
 }

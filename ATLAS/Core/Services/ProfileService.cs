@@ -493,14 +493,14 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
     private static readonly string[] ScalarColumns =
     {
         "Name", "GameType", "IsDefault", "CreatedAt", "UpdatedAt", "Notes",
-        "ServerExePath", "UseProfilingBranch", "ServerDirectory",
+        "ServerExePath", "UseProfilingBranch", "ServerDirectory", "MissionDirectory",
         "ArmaProfileName", "Port", "EnableBattlEye", "FilePatching", "NoSound", "NoSplash", "SkipIntro",
         "WorldEmpty", "NetLog", "LoadMissionToMemory", "NoPause", "NoLogs", "RankingEnabled", "RankingFile",
         "EnableHT", "HugePages", "CpuCount", "ExThreads", "MaxMem", "Malloc", "BandwidthAlg", "LimitFPS",
         "ServerName", "ServerPassword", "AdminPassword", "MaxPlayers", "MotdInterval", "LogFile",
         "TimeStampFormat", "DrawingInMap",
         "MaxPing", "MaxDesync", "MaxPacketLoss", "MaxMsgSend", "MaxSizeNonguaranteed", "MaxSizeGuaranteed",
-        "MinBandwidth", "MaxBandwidth", "MinErrorToSend", "MinErrorToSendNear", "Loopback",
+        "MinBandwidth", "MaxBandwidth", "MinErrorToSend", "MinErrorToSendNear", "Loopback", "Upnp",
         "DisconnectTimeout", "MaxDisconnectTimeout",
         "KickDuplicates", "VerifySignatures", "RequiredSecureId",
         "MissionName", "MissionDifficulty", "AutoInit", "Persistent",
@@ -524,6 +524,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         cmd.Parameters.AddWithValue("@ServerExePath", p.ServerExecutablePath);
         cmd.Parameters.AddWithValue("@UseProfilingBranch", p.UseProfilingBranch);
         cmd.Parameters.AddWithValue("@ServerDirectory", p.ServerDirectory);
+        cmd.Parameters.AddWithValue("@MissionDirectory", p.MissionDirectory);
         cmd.Parameters.AddWithValue("@ArmaProfileName", p.ArmaProfileName);
         cmd.Parameters.AddWithValue("@Port", p.Port);
         cmd.Parameters.AddWithValue("@EnableBattlEye", p.EnableBattlEye);
@@ -565,6 +566,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         cmd.Parameters.AddWithValue("@MinErrorToSend", p.MinErrorToSend);
         cmd.Parameters.AddWithValue("@MinErrorToSendNear", p.MinErrorToSendNear);
         cmd.Parameters.AddWithValue("@Loopback", p.Loopback);
+        cmd.Parameters.AddWithValue("@Upnp", p.Upnp);
         cmd.Parameters.AddWithValue("@DisconnectTimeout", p.DisconnectTimeout);
         cmd.Parameters.AddWithValue("@MaxDisconnectTimeout", p.MaxDisconnectTimeout);
         cmd.Parameters.AddWithValue("@KickDuplicates", p.KickDuplicates);
@@ -614,6 +616,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             ServerExecutablePath = S("ServerExePath"),
             UseProfilingBranch = B("UseProfilingBranch"),
             ServerDirectory = S("ServerDirectory"),
+            MissionDirectory = S("MissionDirectory"),
             ArmaProfileName = S("ArmaProfileName"),
             Port = I("Port"),
             EnableBattlEye = B("EnableBattlEye"),
@@ -655,6 +658,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             MinErrorToSend = D("MinErrorToSend"),
             MinErrorToSendNear = D("MinErrorToSendNear"),
             Loopback = B("Loopback"),
+            Upnp = B("Upnp"),
             DisconnectTimeout = I("DisconnectTimeout"),
             MaxDisconnectTimeout = I("MaxDisconnectTimeout"),
             KickDuplicates = B("KickDuplicates"),

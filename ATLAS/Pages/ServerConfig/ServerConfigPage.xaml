@@ -22,7 +22,7 @@
             <Setter Property="Padding" Value="8,5"/>
             <Setter Property="CaretBrush" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
         </Style>
-        <Style TargetType="ComboBox">
+        <Style TargetType="ComboBox" BasedOn="{StaticResource Atlas.ComboBox}">
             <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
             <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>
@@ -118,6 +118,13 @@
                         <TextBlock Style="{StaticResource Lbl}" Text="Max disconnect timeout (s)"/>
                         <TextBox Text="{Binding Profile.MaxDisconnectTimeout}" Width="120" HorizontalAlignment="Left"/>
                         <CheckBox Content="Loopback" IsChecked="{Binding Profile.Loopback}"/>
+
+                        <TextBlock Style="{StaticResource Hdr}" Text="PORT FORWARDING" Margin="0,16,0,6"/>
+                        <CheckBox Content="UPnP — let the server auto-forward its ports via the router (writes upnp=1)"
+                                  IsChecked="{Binding Profile.Upnp}"/>
+                        <TextBlock Foreground="{DynamicResource Atlas.Brush.Warning}" FontSize="11" Margin="0,4,0,0"
+                                   TextWrapping="Wrap"
+                                   Text="For home/NAT networks only. Don't combine with manual port forwarding, and avoid it on firewalled / anti-DDoS dedicated hosts (it can delay startup ~600s). Needs a UPnP-capable router and the Windows 'UPnP Device Host' service."/>
 
                         <TextBlock Style="{StaticResource Hdr}" Text="RCON (BATTLEYE)" Margin="0,16,0,6"/>
                         <TextBlock Style="{StaticResource Lbl}" Text="RCON password"/>
@@ -278,6 +285,32 @@
                                   Width="160" HorizontalAlignment="Left"/>
                         <CheckBox Content="Auto-init persistent mission" IsChecked="{Binding Profile.AutoInit}"/>
                         <CheckBox Content="Persistent" IsChecked="{Binding Profile.Persistent}"/>
+
+                        <TextBlock Style="{StaticResource Lbl}" Text="Mission folder (blank = scan the server's MPMissions / Missions)"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Browse" Margin="8,0,0,0"
+                                    Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding BrowseMissionDirCommand}"/>
+                            <Grid>
+                                <TextBox x:Name="MissionDirBox"
+                                         Text="{Binding Profile.MissionDirectory, UpdateSourceTrigger=PropertyChanged}"/>
+                                <!-- Grey watermark shows the auto default when no override is set. -->
+                                <TextBlock IsHitTestVisible="False" Margin="9,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource Atlas.Brush.TextDisabled}"
+                                           Text="{Binding Profile.ServerDirectory, StringFormat='{}{0}\MPMissions  (auto)'}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=MissionDirBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </DockPanel>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

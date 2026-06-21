@@ -35,8 +35,9 @@ public partial class MainViewModel : ObservableObject
 
     public string VersionText { get; }
 
-    /// <summary>Sidebar column width — wider when expanded, icon-only when collapsed.</summary>
-    public GridLength SidebarWidth => new(SidebarCollapsed ? 56 : 240);
+    /// <summary>Sidebar column width — wider when expanded, icon-only when collapsed. Expanded width is
+    /// kept tight (~5/3 of the longest label, "Headless Clients") rather than a generous fixed panel.</summary>
+    public GridLength SidebarWidth => new(SidebarCollapsed ? 56 : 180);
 
     public MainViewModel(INavigationService navigation, ISettingsService settings, IProfileService profiles,
         IUpdateService updates)
@@ -59,11 +60,11 @@ public partial class MainViewModel : ObservableObject
         NavItems = new ObservableCollection<NavItem>
         {
             new() { Key = AppConstants.Pages.Dashboard,       Label = "Dashboard",        Icon = PackIconKind.ViewDashboard },
+            new() { Key = AppConstants.Pages.Profiles,        Label = "Profiles",         Icon = PackIconKind.AccountMultiple },
             new() { Key = AppConstants.Pages.ServerConfig,    Label = "Server Config",    Icon = PackIconKind.Tune },
             new() { Key = AppConstants.Pages.Mods,            Label = "Mods",             Icon = PackIconKind.Puzzle },
             new() { Key = AppConstants.Pages.ModPresets,      Label = "Mod Presets",      Icon = PackIconKind.PackageVariant },
             new() { Key = AppConstants.Pages.Missions,        Label = "Missions",         Icon = PackIconKind.Map },
-            new() { Key = AppConstants.Pages.Profiles,        Label = "Profiles",         Icon = PackIconKind.AccountMultiple },
             new() { Key = AppConstants.Pages.HeadlessClients, Label = "Headless Clients", Icon = PackIconKind.Server },
             new() { Key = AppConstants.Pages.DiscordBot,      Label = "Discord Bot",      Icon = PackIconKind.Robot },
             new() { Key = AppConstants.Pages.Scheduler,       Label = "Scheduler",        Icon = PackIconKind.CalendarClock },

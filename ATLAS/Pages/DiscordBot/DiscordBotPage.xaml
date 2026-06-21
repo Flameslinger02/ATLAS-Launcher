@@ -39,7 +39,7 @@
             <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
             <Setter Property="Margin" Value="0,6,16,0"/>
         </Style>
-        <Style TargetType="ComboBox">
+        <Style TargetType="ComboBox" BasedOn="{StaticResource Atlas.ComboBox}">
             <Setter Property="Background" Value="{DynamicResource Atlas.Brush.Surface}"/>
             <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Border}"/>

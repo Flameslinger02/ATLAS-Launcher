@@ -80,7 +80,16 @@ public sealed class AtlasDatabase
                     await create.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
-                // Future migrations: if (currentVersion < 2) { ... }
+                // v1 -> v2: per-profile UPnP toggle + custom mission-folder override.
+                if (currentVersion < 2)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN Upnp INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN MissionDirectory TEXT NOT NULL DEFAULT '';";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
 
                 await using (var setVersion = conn.CreateCommand())
                 {

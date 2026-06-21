@@ -207,6 +207,17 @@ public partial class ServerConfigViewModel : BaseViewModel
     }
 
     [RelayCommand]
+    private async Task BrowseMissionDir()
+    {
+        if (Profile is null) return;
+        var start = !string.IsNullOrWhiteSpace(Profile.MissionDirectory)
+            ? Profile.MissionDirectory
+            : (string.IsNullOrWhiteSpace(Profile.ServerDirectory) ? null : Profile.ServerDirectory);
+        var path = await _dialogs.BrowseFolderAsync("Select the mission folder", start);
+        if (path is not null) { Profile.MissionDirectory = path; OnPropertyChanged(nameof(Profile)); }
+    }
+
+    [RelayCommand]
     private void OpenServerFolder()
     {
         if (Profile is not null && Directory.Exists(Profile.ServerDirectory))

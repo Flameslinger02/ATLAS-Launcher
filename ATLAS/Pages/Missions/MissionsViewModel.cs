@@ -63,18 +63,20 @@ public partial class MissionsViewModel : BaseViewModel
         Profile = _profiles.ActiveProfile;
         _all.Clear();
 
-        if (Profile is null || string.IsNullOrWhiteSpace(Profile.ServerDirectory))
+        var hasFolder = Profile is not null &&
+            (!string.IsNullOrWhiteSpace(Profile.ServerDirectory) || !string.IsNullOrWhiteSpace(Profile.MissionDirectory));
+        if (Profile is null || !hasFolder)
         {
             Missions.Clear();
             Terrains.Clear();
-            StatusMessage = "No active profile / server directory.";
+            StatusMessage = "No active profile / mission folder.";
             return;
         }
 
         IsBusy = true;
         try
         {
-            var list = await _missions.ScanMissionsAsync(Profile.ServerDirectory);
+            var list = await _missions.ScanMissionsAsync(Profile.ServerDirectory, Profile.MissionDirectory);
             _all.AddRange(list);
 
             RebuildTerrains();
@@ -122,16 +124,25 @@ public partial class MissionsViewModel : BaseViewModel
     [RelayCommand]
     private void OpenMissionFolder()
     {
-        if (Profile is null || string.IsNullOrWhiteSpace(Profile.ServerDirectory)) return;
+        if (Profile is null) return;
 
-        var target = Profile.ServerDirectory;
-        var sub = SelectedMission?.SourceFolder;
-        if (!string.IsNullOrWhiteSpace(sub))
+        string? target = null;
+        if (!string.IsNullOrWhiteSpace(Profile.MissionDirectory) && Directory.Exists(Profile.MissionDirectory))
         {
-            var candidate = Path.Combine(Profile.ServerDirectory, sub);
-            if (Directory.Exists(candidate)) target = candidate;
+            target = Profile.MissionDirectory;
+        }
+        else if (!string.IsNullOrWhiteSpace(Profile.ServerDirectory))
+        {
+            target = Profile.ServerDirectory;
+            var sub = SelectedMission?.SourceFolder;
+            if (!string.IsNullOrWhiteSpace(sub))
+            {
+                var candidate = Path.Combine(Profile.ServerDirectory, sub);
+                if (Directory.Exists(candidate)) target = candidate;
+            }
         }
 
+        if (string.IsNullOrWhiteSpace(target)) return;
         try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); }
         catch { /* ignore launch failures */ }
     }

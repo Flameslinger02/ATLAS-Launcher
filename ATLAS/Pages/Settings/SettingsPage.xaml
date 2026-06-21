@@ -131,6 +131,31 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Arma 3 Server install -->
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Section}" Text="Arma 3 Server"/>
+                        <TextBlock Style="{StaticResource Label}"
+                                   Text="Server install directory (auto-detected from Steam; pre-fills new profiles)"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Style="{StaticResource Field}"
+                                     Text="{Binding ArmaServerDirectory, UpdateSourceTrigger=PropertyChanged}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                                <Button Content="Detect" Style="{StaticResource Atlas.Button.Secondary}"
+                                        Command="{Binding DetectArmaServerCommand}"/>
+                                <Button Content="Browse…" Style="{StaticResource Atlas.Button.Secondary}"
+                                        Margin="8,0,0,0" Command="{Binding BrowseArmaServerCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource Hint}"
+                                   Text="ATLAS looks for arma3server_x64.exe under your Steam 'Arma 3 Server' / 'Arma 3' folders. Leave blank to set the path per profile instead."/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Startup -->
                 <Border Style="{StaticResource Card}">
                     <StackPanel>

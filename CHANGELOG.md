@@ -2,6 +2,26 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.2.0] — 2026-06-21
+
+### Added
+- **UPnP** — optional toggle (Server Config → Network) that writes `upnp = 1;` to `server.cfg`, letting the
+  dedicated server map its own ports via a UPnP/IGD router. Off by default.
+- **Arma install auto-detection** — Settings → Arma 3 Server locates the dedicated-server install from your
+  Steam libraries; new profiles pre-fill their server path from it (still fully editable).
+- **Custom mission folder** — an optional per-profile mission folder override (Server Config → Mission); when
+  blank, ATLAS scans the server's `MPMissions` / `Missions` as before.
+
+### Changed
+- **Profiles** moved to the second sidebar position; the sidebar is narrower.
+- **Mods grid** — per-column minimum widths, columns keep their dragged width (resizing pushes the neighbouring
+  columns), and header divider lines mark the resize handles.
+- Larger minimum window width.
+
+### Fixed
+- Drop-down (ComboBox) menus were hard to read (light-grey text on a white popup); they are now themed correctly
+  in both the light and dark themes.
+
 ## [0.1.0] — 2026-06-16
 
 First public release. ATLAS is a single-file, self-contained, **portable** Windows x64 application (.NET 8 / WPF) —
