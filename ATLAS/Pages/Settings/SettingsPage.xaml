@@ -43,7 +43,7 @@
 
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,24,24,0">
-            <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+            <StackPanel MaxWidth="820" HorizontalAlignment="Center">
                 <TextBlock Text="Settings" FontSize="24" FontWeight="Bold"
                            Foreground="{DynamicResource Atlas.Brush.TextPrimary}" Margin="0,0,0,18"/>
 

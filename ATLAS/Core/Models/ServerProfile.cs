@@ -88,6 +88,9 @@ public class ServerProfile
 
     // server.cfg — Mission
     public string MissionName { get; set; } = string.Empty;
+    /// <summary>Ordered ';'-separated mission templates (FullPboName) forming the server rotation
+    /// (server.cfg class Missions). Empty = fall back to the single <see cref="MissionName"/>.</summary>
+    public string MissionQueue { get; set; } = string.Empty;
     public string MissionDifficulty { get; set; } = "Regular";
     public bool AutoInit { get; set; }
     public bool Persistent { get; set; }

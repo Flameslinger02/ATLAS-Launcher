@@ -98,23 +98,10 @@
          closed box AND the drop-down list from the Atlas palette, so text is
          readable in BOTH themes (dark-on-light / light-on-dark) automatically.
          ============================================================ -->
+    <!-- Transparent full-area click target. The visible box is the ComboBox template's outer Border so it always
+         encompasses the selected content (text + arrow), not just the arrow column. -->
     <ControlTemplate x:Key="Atlas.ComboBoxToggle" TargetType="ToggleButton">
-        <Border x:Name="Bd" Background="{DynamicResource Atlas.Brush.Surface}"
-                BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="3">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="22"/>
-                </Grid.ColumnDefinitions>
-                <Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-                      Data="M0,0 L4,4 L8,0 Z" Fill="{DynamicResource Atlas.Brush.TextSecondary}"/>
-            </Grid>
-        </Border>
-        <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Accent}"/>
-            </Trigger>
-        </ControlTemplate.Triggers>
+        <Border Background="Transparent"/>
     </ControlTemplate>
 
     <Style x:Key="Atlas.ComboBoxItem" TargetType="ComboBoxItem">
@@ -161,29 +148,43 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
-                    <Grid>
-                        <ToggleButton Focusable="False" ClickMode="Press"
-                                      Template="{StaticResource Atlas.ComboBoxToggle}"
-                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
-                        <ContentPresenter IsHitTestVisible="False" Margin="8,0,28,0"
-                                          VerticalAlignment="Center" HorizontalAlignment="Left"
-                                          Content="{TemplateBinding SelectionBoxItem}"
-                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
-                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
-                        <Popup x:Name="Popup" Placement="Bottom" Focusable="False" AllowsTransparency="True"
-                               IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Slide">
-                            <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                                    MaxHeight="{TemplateBinding MaxDropDownHeight}" Margin="0,2,0,0"
-                                    Background="{DynamicResource Atlas.Brush.Surface}"
-                                    BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1">
-                                <ScrollViewer>
-                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
-                                </ScrollViewer>
-                            </Border>
-                        </Popup>
-                    </Grid>
+                    <Border x:Name="Bd" Background="{DynamicResource Atlas.Brush.SurfaceRaised}"
+                            BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="3"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="22"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- transparent click layer spanning the whole control (drawn first / behind) -->
+                            <ToggleButton Grid.ColumnSpan="2" Style="{x:Null}" Focusable="False" ClickMode="Press"
+                                          Template="{StaticResource Atlas.ComboBoxToggle}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+                            <ContentPresenter Grid.Column="0" IsHitTestVisible="False" Margin="8,0,4,0"
+                                              VerticalAlignment="Center" HorizontalAlignment="Left"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            <Path Grid.Column="1" IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Data="M0,0 L4,4 L8,0 Z" Fill="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                            <Popup x:Name="Popup" Placement="Bottom" Focusable="False" AllowsTransparency="True"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Slide">
+                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}" Margin="0,2,0,0"
+                                        Background="{DynamicResource Atlas.Brush.Surface}"
+                                        BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1">
+                                    <ScrollViewer>
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Atlas.Brush.Accent}"/>
+                        </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextDisabled}"/>
                         </Trigger>

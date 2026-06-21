@@ -4,7 +4,7 @@ A modern Windows desktop launcher and admin console for **Arma 3 dedicated serve
 profiles, mods, missions, scheduling, BattlEye RCON, headless clients, and Discord integration from a single
 self contained application — a spiritual successor to FASTER/TADST with a live admin console.
 
-> **Status:** v0.3.0 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
+> **Status:** v0.3.1 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
 
 ---
 
@@ -13,7 +13,7 @@ self contained application — a spiritual successor to FASTER/TADST with a live
 - **Server profiles** — full `server.cfg` / `basic.cfg` generation, live launch-command preview, import/export.
 - **Mods** — SteamCMD download/update, mod presets, Arma 3 Launcher `.html` preset import, junction point
   deployment with key handling, per mod headless client targeting.
-- **Missions** — scan `MPMissions`, set the active mission and parameters.
+- **Missions** — scan `MPMissions`, set the active mission or a multi-mission **rotation**, and parameters.
 - **Process management** — launch/stop/restart with crash detection and optional auto restart; live RPT log tail
   and CPU/RAM sampling on the Dashboard.
 - **Headless clients** — 1–10 instances, per instance profiles/logs, auto restart.

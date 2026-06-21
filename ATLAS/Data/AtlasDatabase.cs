@@ -196,6 +196,15 @@ public sealed class AtlasDatabase
                     await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
+                if (currentVersion < 9)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN MissionQueue TEXT NOT NULL DEFAULT '';";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
                 await using (var setVersion = conn.CreateCommand())
                 {
                     setVersion.Transaction = tx;

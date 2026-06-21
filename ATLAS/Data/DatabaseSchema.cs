@@ -7,7 +7,7 @@ namespace Atlas.Data;
 public static class DatabaseSchema
 {
     /// <summary>Increment on every schema change and add a migration step in <see cref="AtlasDatabase"/>.</summary>
-    public const int SchemaVersion = 8;
+    public const int SchemaVersion = 9;
 
     /// <summary>
     /// Full DDL for schema version 1. All statements use <c>IF NOT EXISTS</c> so this is idempotent.
@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS ServerProfiles (
     RequiredSecureId    INTEGER NOT NULL DEFAULT 1,
 
     MissionName         TEXT    NOT NULL DEFAULT '',
+    MissionQueue        TEXT    NOT NULL DEFAULT '',
     MissionDifficulty   TEXT    NOT NULL DEFAULT 'Regular',
     AutoInit            INTEGER NOT NULL DEFAULT 0,
     Persistent          INTEGER NOT NULL DEFAULT 0,

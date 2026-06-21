@@ -79,16 +79,20 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         }
 
         L("// --- Mission ---");
-        if (!string.IsNullOrWhiteSpace(p.MissionName))
+        var missionQueue = MissionQueueList(p);
+        if (missionQueue.Length > 0)
         {
             L("class Missions");
             L("{");
-            L("    class Mission");
-            L("    {");
-            L($"        template = {Str(p.MissionName)};");
-            L($"        difficulty = {Str(p.MissionDifficulty)};");
-            if (p.SkipLobby) L("        skipLobby = 1;");
-            L("    };");
+            for (var i = 0; i < missionQueue.Length; i++)
+            {
+                L($"    class Mission_{i}");
+                L("    {");
+                L($"        template = {Str(missionQueue[i])};");
+                L($"        difficulty = {Str(p.MissionDifficulty)};");
+                if (p.SkipLobby) L("        skipLobby = 1;");
+                L("    };");
+            }
             L("};");
         }
         else
@@ -314,6 +318,17 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
 
     /// <summary>Boolean as an Arma config flag (1/0).</summary>
     private static string B(bool b) => b ? "1" : "0";
+
+    /// <summary>The ordered mission rotation: the ';'-separated <see cref="ServerProfile.MissionQueue"/>, or the
+    /// single <see cref="ServerProfile.MissionName"/> when the queue is empty (legacy / manual entry).</summary>
+    private static string[] MissionQueueList(ServerProfile p)
+    {
+        var arr = (p.MissionQueue ?? string.Empty)
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (arr.Length == 0 && !string.IsNullOrWhiteSpace(p.MissionName))
+            return new[] { p.MissionName.Trim() };
+        return arr;
+    }
 
     private static string ModFolder(ArmaModEntry m)
     {

@@ -79,6 +79,17 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
     public ObservableCollection<MissionInfo> Missions { get; } = new();
     public ObservableCollection<string> Terrains { get; } = new();
     [ObservableProperty] private MissionInfo? _selectedMission;
+
+    /// <summary>Summary of the checked mission rotation, shown under the grid.</summary>
+    [ObservableProperty] private string _queueSummary = "No missions in rotation.";
+
+    /// <summary>True once a scan has populated <see cref="_allMissions"/>, so <see cref="SyncProfile"/> may flush
+    /// the queue from the grid. Before the first scan the DB-loaded MissionQueue must be preserved (not overwritten
+    /// with an empty grid).</summary>
+    private bool _missionsLoaded;
+    /// <summary>Suppresses per-item queue/preview refresh while IsActive is set programmatically (load / clear).</summary>
+    private bool _loadingMissions;
+
     [ObservableProperty] private string _missionSearchText = string.Empty;
     [ObservableProperty] private string _selectedTerrain = "All";
     [ObservableProperty] private string _missionStatus = string.Empty;
@@ -167,6 +178,11 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         Profile.AllowedHTMLLoadURIs = HtmlUris.ToList();
         for (var i = 0; i < Mods.Count; i++) Mods[i].LoadOrder = i;
         Profile.Mods = Mods.ToList();
+
+        // Flush the checked missions into the rotation — but only once a scan has populated the grid, so we never
+        // overwrite a saved queue with an empty grid before the (async) scan completes.
+        if (_missionsLoaded)
+            Profile.MissionQueue = string.Join(";", _allMissions.Where(m => m.IsActive).Select(m => m.FullPboName));
     }
 
     partial void OnProfileChanged(ServerProfile? value) => OnPropertyChanged(nameof(HasActiveProfile));
@@ -544,45 +560,79 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
     [RelayCommand]
     private async Task ReloadMissionsAsync()
     {
+        foreach (var m in _allMissions) m.PropertyChanged -= OnMissionItemChanged;
         _allMissions.Clear();
-        var hasFolder = Profile is not null &&
-            (!string.IsNullOrWhiteSpace(Profile.ServerDirectory) || !string.IsNullOrWhiteSpace(Profile.MissionDirectory));
-        if (Profile is null || !hasFolder)
-        {
-            Missions.Clear();
-            Terrains.Clear();
-            MissionStatus = "No server / mission folder set.";
-            return;
-        }
-
-        IsBusy = true;
+        _missionsLoaded = false;
+        _loadingMissions = true;
         try
         {
-            var list = await _missions.ScanMissionsAsync(Profile.ServerDirectory, Profile.MissionDirectory);
-            _allMissions.AddRange(list);
-            RebuildTerrains();
-            MarkActiveMission();
-            ApplyMissionFilter();
-            MissionStatus = $"{_allMissions.Count} mission(s).";
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to scan missions in {Dir}.", Profile.ServerDirectory);
-            MissionStatus = "Failed to scan missions.";
+            var hasFolder = Profile is not null &&
+                (!string.IsNullOrWhiteSpace(Profile.ServerDirectory) || !string.IsNullOrWhiteSpace(Profile.MissionDirectory));
+            if (Profile is null || !hasFolder)
+            {
+                Missions.Clear();
+                Terrains.Clear();
+                MissionStatus = "No server / mission folder set.";
+                UpdateQueueSummary();
+                return;
+            }
+
+            IsBusy = true;
+            try
+            {
+                var list = await _missions.ScanMissionsAsync(Profile.ServerDirectory, Profile.MissionDirectory);
+                foreach (var m in list) m.PropertyChanged += OnMissionItemChanged;
+                _allMissions.AddRange(list);
+                RebuildTerrains();
+                MarkQueuedMissions();
+                ApplyMissionFilter();
+                _missionsLoaded = true;
+                MissionStatus = $"{_allMissions.Count} mission(s).";
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to scan missions in {Dir}.", Profile.ServerDirectory);
+                MissionStatus = "Failed to scan missions.";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
         finally
         {
-            IsBusy = false;
+            _loadingMissions = false;
         }
     }
 
     [RelayCommand]
-    private void SetActiveMission()
+    private void ClearMissionQueue()
     {
-        if (SelectedMission is null || Profile is null) return;
-        Profile.MissionName = SelectedMission.FullPboName;
-        MarkActiveMission();
-        ApplyMissionFilter();
+        _loadingMissions = true;
+        foreach (var m in _allMissions) m.IsActive = false;
+        _loadingMissions = false;
+        UpdateQueueSummary();
+        RefreshPreview();
+    }
+
+    /// <summary>A mission's checkbox toggled: refresh the rotation summary + the config preview
+    /// (RefreshPreview → SyncProfile flushes the queue into the working copy).</summary>
+    private void OnMissionItemChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (_loadingMissions) return;
+        if (e.PropertyName == nameof(MissionInfo.IsActive))
+        {
+            UpdateQueueSummary();
+            RefreshPreview();
+        }
+    }
+
+    private void UpdateQueueSummary()
+    {
+        var names = _allMissions.Where(m => m.IsActive).Select(m => m.MissionName).ToList();
+        QueueSummary = names.Count == 0
+            ? "No missions checked — the single mission below is used (if set)."
+            : $"Rotation ({names.Count}): " + string.Join(", ", names);
     }
 
     [RelayCommand]
@@ -632,10 +682,18 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         }
     }
 
-    private void MarkActiveMission()
+    private void MarkQueuedMissions()
     {
+        var queue = (Profile?.MissionQueue ?? string.Empty)
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Legacy fallback: a profile saved before the queue existed only has the single MissionName — treat it as
+        // the one checked mission so nothing is lost.
+        if (queue.Count == 0 && !string.IsNullOrWhiteSpace(Profile?.MissionName))
+            queue.Add(Profile!.MissionName.Trim());
         foreach (var m in _allMissions)
-            m.IsActive = string.Equals(m.FullPboName, Profile?.MissionName, StringComparison.OrdinalIgnoreCase);
+            m.IsActive = queue.Contains(m.FullPboName);
+        UpdateQueueSummary();
     }
 
     // ===================================================================== Small helpers

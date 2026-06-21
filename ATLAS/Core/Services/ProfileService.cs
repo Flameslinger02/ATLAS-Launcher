@@ -510,7 +510,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         "MinBandwidth", "MaxBandwidth", "MinErrorToSend", "MinErrorToSendNear", "Loopback", "Upnp",
         "DisconnectTimeout", "MaxDisconnectTimeout",
         "KickDuplicates", "VerifySignatures", "RequiredSecureId",
-        "MissionName", "MissionDifficulty", "AutoInit", "Persistent",
+        "MissionName", "MissionQueue", "MissionDifficulty", "AutoInit", "Persistent",
         "DisableVoN", "VonCodecQuality", "VotingEnabled", "VoteMissionPlayers", "VoteThreshold",
         "EnableDebugConsole",
         "RconPassword", "RconPort",
@@ -593,6 +593,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         cmd.Parameters.AddWithValue("@VerifySignatures", p.VerifySignatures);
         cmd.Parameters.AddWithValue("@RequiredSecureId", p.RequiredSecureId);
         cmd.Parameters.AddWithValue("@MissionName", p.MissionName);
+        cmd.Parameters.AddWithValue("@MissionQueue", p.MissionQueue);
         cmd.Parameters.AddWithValue("@MissionDifficulty", p.MissionDifficulty);
         cmd.Parameters.AddWithValue("@AutoInit", p.AutoInit);
         cmd.Parameters.AddWithValue("@Persistent", p.Persistent);
@@ -735,6 +736,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             VerifySignatures = I("VerifySignatures"),
             RequiredSecureId = B("RequiredSecureId"),
             MissionName = S("MissionName"),
+            MissionQueue = S("MissionQueue"),
             MissionDifficulty = S("MissionDifficulty"),
             AutoInit = B("AutoInit"),
             Persistent = B("Persistent"),

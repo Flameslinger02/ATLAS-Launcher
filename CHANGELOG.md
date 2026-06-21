@@ -2,7 +2,7 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
-## [0.3.0] — 2026-06-21
+## [0.3.1] — 2026-06-21
 
 ### Added
 - **In-app updater** (Console → Updates) — install or update the **Arma 3 dedicated server** via SteamCMD with
@@ -19,6 +19,8 @@ All notable changes to ATLAS are documented here. This project adheres to [Seman
   `onUserDisconnected`, `onHackedData`, `onDifferentData`, `onUnsignedData`, `onUserKicked`).
 - **More network + mission settings** — max packet size and max custom file size; auto-select mission, random
   mission order, and skip lobby.
+- **Mission rotation** — check multiple missions in the Missions tab to build a server rotation
+  (`server.cfg` `class Missions`), played in order and cycled; "Randomize mission order" shuffles it.
 - **Uninstall** (Settings → danger zone) — removes ATLAS and its regenerable files, with an optional checkbox to
   also wipe your settings and profiles database; it reports anything it could not remove.
 
@@ -33,7 +35,9 @@ All notable changes to ATLAS are documented here. This project adheres to [Seman
   their dragged width and push their neighbours.
 
 ### Fixed
-- Drop-down menus no longer collapse to just the selected value (a minimum width is enforced).
+- Drop-down menus render as a single bordered box around the selected text and arrow (previously the arrow could
+  appear as a separate boxed button), and no longer collapse to just the selected value.
+- Settings page content is centered in the window instead of pinned to the sidebar.
 - The mod **Name** column is read-only (it was accidentally editable).
 - Mods grid column widths and padding tightened for readability.
 - Fixed a crash that could occur when setting the active mission.

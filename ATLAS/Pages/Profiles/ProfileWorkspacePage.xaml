@@ -325,8 +325,8 @@
                                                 <Setter Property="Padding" Value="9,4"/>
                                             </Style>
                                         </WrapPanel.Resources>
-                                        <Button Content="Set Active" Style="{StaticResource Atlas.Button.Primary}"
-                                                Command="{Binding SetActiveMissionCommand}"/>
+                                        <Button Content="Clear Queue"
+                                                Command="{Binding ClearMissionQueueCommand}"/>
                                         <Button Content="Open Folder" Command="{Binding OpenMissionFolderCommand}"/>
                                         <Button Content="Rescan" Command="{Binding ReloadMissionsCommand}"/>
                                     </WrapPanel>
@@ -343,7 +343,14 @@
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Mission" Binding="{Binding MissionName}" Width="280" MinWidth="160"/>
                                             <DataGridTextColumn Header="Terrain" Binding="{Binding Terrain}" Width="140" MinWidth="110"/>
-                                            <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" Width="60" MinWidth="54"/>
+                                            <DataGridTemplateColumn Header="Queue" Width="64" MinWidth="56">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                  IsChecked="{Binding IsActive, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </DockPanel>
@@ -354,7 +361,10 @@
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource Hdr}" Text="MISSION PARAMETERS"/>
-                                        <TextBlock Style="{StaticResource Lbl}" Text="Active mission (template name)"/>
+                                        <TextBlock Style="{StaticResource Lbl}" Text="Mission rotation (check missions in the list)"/>
+                                        <TextBlock Text="{Binding QueueSummary}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                                   Foreground="{DynamicResource Atlas.Brush.TextSecondary}" FontSize="11"/>
+                                        <TextBlock Style="{StaticResource Lbl}" Text="Single mission template (used only if none are checked)"/>
                                         <TextBox Text="{Binding Profile.MissionName}"/>
                                         <TextBlock Style="{StaticResource Lbl}" Text="Difficulty"/>
                                         <ComboBox Width="160" ItemsSource="{Binding DifficultyOptions}"
