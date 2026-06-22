@@ -200,10 +200,10 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap"
                                    Foreground="White" Text="{Binding UpdateBannerText}"/>
-                        <Button Grid.Column="1" Content="View Release" Margin="0,0,8,0"
+                        <Button Grid.Column="1" Content="Update" Margin="0,0,8,0"
                                 Background="White" Foreground="{DynamicResource Atlas.Brush.Accent}"
                                 BorderThickness="0" Padding="12,5" Cursor="Hand"
-                                Command="{Binding ViewReleaseCommand}"/>
+                                Command="{Binding UpdateNowCommand}"/>
                         <Button Grid.Column="2" Content="Dismiss"
                                 Background="Transparent" Foreground="White"
                                 BorderBrush="White" BorderThickness="1" Padding="12,5" Cursor="Hand"

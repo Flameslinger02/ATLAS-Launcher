@@ -2,6 +2,13 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.6] — 2026-06-22
+
+### Changed
+- The startup "update available" banner button is now **Update** (was "View Release") and opens the
+  in-app updater on the Console page instead of the GitHub releases page — so you can download and apply
+  the update without leaving ATLAS.
+
 ## [0.3.5] — 2026-06-21
 
 ### Added

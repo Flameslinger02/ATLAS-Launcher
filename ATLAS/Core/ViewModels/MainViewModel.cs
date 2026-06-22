@@ -30,7 +30,6 @@ public partial class MainViewModel : ObservableObject
     // ----- Update banner (non-blocking; slides in on startup if a newer release exists) -----
     [ObservableProperty] private bool _updateBannerVisible;
     [ObservableProperty] private string _updateBannerText = string.Empty;
-    private string? _releaseUrl;
 
     /// <summary>Nav items above the Profiles section (Dashboard).</summary>
     public ObservableCollection<NavItem> NavItemsTop { get; }
@@ -99,7 +98,6 @@ public partial class MainViewModel : ObservableObject
 
             void Show()
             {
-                _releaseUrl = result.ReleaseUrl;
                 UpdateBannerText =
                     $"ATLAS v{result.LatestVersion} is available (you have v{result.CurrentVersion}).";
                 UpdateBannerVisible = true;
@@ -116,10 +114,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ViewRelease()
+    private void UpdateNow()
     {
-        if (!string.IsNullOrWhiteSpace(_releaseUrl)) _updates.OpenReleasePage(_releaseUrl!);
+        // Don't send the user to GitHub — take them to the in-app updater (Console → Updates) where the
+        // "Update ATLAS" button downloads the new release, swaps the exe, and relaunches.
         UpdateBannerVisible = false;
+        _navigation.NavigateTo(AppConstants.Pages.Console);
     }
 
     [RelayCommand]
