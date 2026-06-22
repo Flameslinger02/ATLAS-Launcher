@@ -285,11 +285,13 @@ public sealed class HeadlessClientService : IHeadlessClientService, IDisposable
         Flag("-skipIntro");
         Flag("-world=empty");
 
-        // Client/headless mods (server-only mods never go on a client).
-        var mods = string.Join(";", p.Mods
-            .OrderBy(m => m.LoadOrder)
-            .Where(m => m.EnabledForHeadless && !m.IsServerOnly)
-            .Select(ModFolder)
+        // Client/headless mods (server-only mods never go on a client). Enabled creator/platform DLC folders
+        // lead the list, matching the server's -mod= line so DLC-dependent missions load on the HC too.
+        var mods = string.Join(";", ConfigGeneratorService.EnabledDlcFolders(p)
+            .Concat(p.Mods
+                .OrderBy(m => m.LoadOrder)
+                .Where(m => m.EnabledForHeadless && !m.IsServerOnly)
+                .Select(ModFolder))
             .Where(s => s.Length > 0));
         if (mods.Length > 0) Flag($"-mod={MaybeQuote(mods)}");
 

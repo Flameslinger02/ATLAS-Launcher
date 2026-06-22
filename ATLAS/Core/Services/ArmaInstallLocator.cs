@@ -10,6 +10,10 @@ public sealed class ArmaInstallLocator : IArmaInstallLocator
     // Steam "common" subfolders that may hold a dedicated-server exe, best match first.
     private static readonly string[] CandidateFolders = { "Arma 3 Server", "Arma 3" };
     private static readonly string[] ServerExeNames = { "arma3server_x64.exe", "arma3server.exe" };
+    // The Arma 3 GAME client executables. Their presence marks a folder as the game install (app 107410),
+    // where a dedicated-server (app 233780) update must NEVER run — SteamCMD would install a different app
+    // over the game and corrupt it (Steam then re-validates the whole game).
+    private static readonly string[] GameClientExeNames = { "arma3_x64.exe", "arma3.exe" };
 
     public string? FindServerDirectory()
     {
@@ -39,6 +43,18 @@ public sealed class ArmaInstallLocator : IArmaInstallLocator
             if (File.Exists(candidate)) return candidate;
         }
         return null;
+    }
+
+    /// <summary>True if <paramref name="directory"/> is the Arma 3 GAME install (contains a game client exe).
+    /// Updating the dedicated server (app 233780) into such a folder overwrites and corrupts the game, so the
+    /// updater and scheduler must refuse it. The game folder ships the server exe too, so a bare server-exe
+    /// check (see <see cref="FindServerExecutable"/>) is not enough to tell a server-only install apart.</summary>
+    public static bool LooksLikeGameInstall(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory)) return false;
+        foreach (var name in GameClientExeNames)
+            if (File.Exists(Path.Combine(directory, name))) return true;
+        return false;
     }
 
     /// <summary>All Steam library roots: the base install plus every entry in libraryfolders.vdf.</summary>

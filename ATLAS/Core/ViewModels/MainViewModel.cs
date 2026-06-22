@@ -18,6 +18,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IProfileService _profiles;
     private readonly IUpdateService _updates;
+    private readonly Atlas.Pages.Console.ConsoleViewModel _console;
 
     [ObservableProperty] private object? _currentView;
     [ObservableProperty] private bool _sidebarCollapsed;
@@ -47,12 +48,13 @@ public partial class MainViewModel : ObservableObject
     public GridLength SidebarWidth => new(SidebarCollapsed ? 56 : 180);
 
     public MainViewModel(INavigationService navigation, ISettingsService settings, IProfileService profiles,
-        IUpdateService updates, ProfilesViewModel profileNav)
+        IUpdateService updates, ProfilesViewModel profileNav, Atlas.Pages.Console.ConsoleViewModel console)
     {
         _navigation = navigation;
         _settings = settings;
         _profiles = profiles;
         _updates = updates;
+        _console = console;
         ProfileNav = profileNav;
 
         _navigation.Navigated += (_, view) => CurrentView = view;
@@ -117,8 +119,10 @@ public partial class MainViewModel : ObservableObject
     private void UpdateNow()
     {
         // Don't send the user to GitHub — take them to the in-app updater (Console → Updates) where the
-        // "Update ATLAS" button downloads the new release, swaps the exe, and relaunches.
+        // "Update ATLAS" button downloads the new release, swaps the exe, and relaunches. Land them on the
+        // Updates tab directly rather than the default ATLAS Log tab.
         UpdateBannerVisible = false;
+        _console.ShowUpdatesTab();
         _navigation.NavigateTo(AppConstants.Pages.Console);
     }
 

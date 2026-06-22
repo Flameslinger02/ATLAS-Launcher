@@ -205,6 +205,19 @@ public sealed class AtlasDatabase
                     await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
+                // v9 -> v10: dedicated server-side file patching toggle (-filePatching), split out from the
+                // client-facing allowedFilePatching tri-state. Preserve current effective behaviour by turning
+                // it on wherever client file patching was enabled (FilePatching > 0).
+                if (currentVersion < 10)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN ServerFilePatching INTEGER NOT NULL DEFAULT 0;" +
+                        "UPDATE ServerProfiles SET ServerFilePatching = 1 WHERE FilePatching > 0;";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
                 await using (var setVersion = conn.CreateCommand())
                 {
                     setVersion.Transaction = tx;

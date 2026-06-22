@@ -32,12 +32,29 @@ public sealed partial class MissionService : IMissionService
 
                 try
                 {
+                    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var file in Directory.EnumerateFiles(dir, "*.pbo", SearchOption.TopDirectoryOnly))
                     {
                         var fi = new FileInfo(file);
                         var info = ParsePboFileName(fi.Name);
                         info.FileSizeBytes = fi.Length;
                         info.LastModified = fi.LastWriteTime;
+                        info.SourceFolder = folderName;
+                        results.Add(info);
+                        seen.Add(info.FullPboName);
+                    }
+
+                    // Unpacked missions: a folder like "MyMission.Altis" containing mission.sqm (a mission
+                    // folder dropped straight into MPMissions during mission-making). Arma's server.cfg
+                    // `template` accepts the bare folder name exactly as it does a .pbo name. Skip any whose
+                    // name already matched a .pbo so a mission present both ways isn't listed twice.
+                    foreach (var sub in Directory.EnumerateDirectories(dir))
+                    {
+                        if (!File.Exists(Path.Combine(sub, "mission.sqm"))) continue;
+                        var di = new DirectoryInfo(sub);
+                        var info = ParsePboFileName(di.Name); // parser tolerates a name with no .pbo extension
+                        if (!seen.Add(info.FullPboName)) continue;
+                        info.LastModified = di.LastWriteTime;
                         info.SourceFolder = folderName;
                         results.Add(info);
                     }

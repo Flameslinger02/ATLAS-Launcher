@@ -30,6 +30,7 @@ public class ServerProfile
     public int Port { get; set; } = AppConstants.DefaultGamePort;
     public bool EnableBattlEye { get; set; } = true;
     public int FilePatching { get; set; }   // allowedFilePatching: 0 = none, 1 = headless only, 2 = all clients
+    public bool ServerFilePatching { get; set; }   // server-side -filePatching: load loose/unpacked files (e.g. unpacked missions)
     public bool NoSound { get; set; } = true;
     public bool NoSplash { get; set; } = true;
     public bool SkipIntro { get; set; } = true;

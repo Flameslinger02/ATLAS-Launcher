@@ -87,7 +87,7 @@
 
     <Grid Margin="16,12,16,16">
         <!-- ===== Console = logs + updates ===== -->
-        <TabControl Background="Transparent" BorderThickness="0">
+        <TabControl Background="Transparent" BorderThickness="0" SelectedIndex="{Binding SelectedTabIndex}">
 
             <!-- ATLAS App Log -->
             <TabItem Header="ATLAS Log" DataContext="{Binding AppLog}">

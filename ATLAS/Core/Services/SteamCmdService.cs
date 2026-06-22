@@ -118,15 +118,23 @@ public sealed class SteamCmdService : ISteamCmdService
     public async Task UpdateServerAsync(string installPath, bool profilingBranch, IProgress<string> progress,
         CancellationToken ct, Func<CancellationToken, Task<string?>>? steamGuardProvider = null)
     {
+        // Update the app that is ACTUALLY installed here, so this is a real in-place update and never installs a
+        // different app on top of an existing one (which corrupts it). A folder containing the game client
+        // (arma3_x64.exe) is the Arma 3 GAME (107410) — the dedicated server ships with the game, so update the
+        // game in place; a server-only or empty folder gets the standalone dedicated server (233780).
+        var isGame = ArmaInstallLocator.LooksLikeGameInstall(installPath);
+        var appId = isGame ? AppConstants.Arma3GameAppId : AppConstants.Arma3ServerAppId;
+
         var login = GetSavedUsername() is { Length: > 0 } user ? user : "anonymous";
 
         var args = new List<string>
         {
             "+force_install_dir", installPath,
             "+login", login,
-            "+app_update", AppConstants.Arma3ServerAppId,
+            "+app_update", appId,
         };
-        if (profilingBranch)
+        // The "profiling" performance beta is published under the standalone dedicated-server app only.
+        if (profilingBranch && !isGame)
         {
             args.Add("-beta");
             args.Add("profiling");
@@ -134,8 +142,8 @@ public sealed class SteamCmdService : ISteamCmdService
         args.Add("validate");
         args.Add("+quit");
 
-        Log.Information("Updating Arma 3 server (app {AppId}, profiling={Profiling}) into {Path}.",
-            AppConstants.Arma3ServerAppId, profilingBranch, installPath);
+        Log.Information("Updating Arma 3 (app {AppId}, profiling={Profiling}) in place at {Path}.",
+            appId, profilingBranch && !isGame, installPath);
         await RunSteamCmdAsync(args, progress, ct, steamGuardProvider).ConfigureAwait(false);
     }
 

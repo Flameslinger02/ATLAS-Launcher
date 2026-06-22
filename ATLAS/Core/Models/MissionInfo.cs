@@ -3,12 +3,14 @@ using System.ComponentModel;
 namespace Atlas.Core.Models;
 
 /// <summary>
-/// Transient result of a filesystem mission scan (one entry per <c>.pbo</c> found under a server's
-/// <c>MPMissions</c>/<c>Missions</c> folder). Never persisted; rebuilt on every scan.
+/// Transient result of a filesystem mission scan — one entry per <c>.pbo</c> file or per unpacked mission
+/// folder (a directory containing <c>mission.sqm</c>) found under a server's <c>MPMissions</c>/<c>Missions</c>
+/// folder. Never persisted; rebuilt on every scan.
 /// </summary>
 public class MissionInfo : INotifyPropertyChanged
 {
-    /// <summary>The .pbo file name as found on disk (e.g. <c>co10_Assault.Altis.pbo</c>).</summary>
+    /// <summary>The name as found on disk: the <c>.pbo</c> file name (e.g. <c>co10_Assault.Altis.pbo</c>) for a
+    /// packed mission, or the folder name (e.g. <c>co10_Assault.Altis</c>) for an unpacked one.</summary>
     public string PboFileName { get; set; } = string.Empty;
 
     /// <summary>Mission name — the part of <see cref="FullPboName"/> before the last dot.</summary>

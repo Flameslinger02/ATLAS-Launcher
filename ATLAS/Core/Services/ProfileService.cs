@@ -501,7 +501,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
     {
         "Name", "GameType", "IsDefault", "CreatedAt", "UpdatedAt", "Notes",
         "ServerExePath", "UseProfilingBranch", "ServerDirectory", "MissionDirectory",
-        "ArmaProfileName", "Port", "EnableBattlEye", "FilePatching", "NoSound", "NoSplash", "SkipIntro",
+        "ArmaProfileName", "Port", "EnableBattlEye", "FilePatching", "ServerFilePatching", "NoSound", "NoSplash", "SkipIntro",
         "WorldEmpty", "NetLog", "LoadMissionToMemory", "NoPause", "NoLogs", "RankingEnabled", "RankingFile",
         "EnableHT", "HugePages", "CpuCount", "ExThreads", "MaxMem", "Malloc", "BandwidthAlg", "LimitFPS",
         "ServerName", "ServerPassword", "AdminPassword", "MaxPlayers", "MotdInterval", "LogFile",
@@ -549,6 +549,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         cmd.Parameters.AddWithValue("@Port", p.Port);
         cmd.Parameters.AddWithValue("@EnableBattlEye", p.EnableBattlEye);
         cmd.Parameters.AddWithValue("@FilePatching", p.FilePatching);
+        cmd.Parameters.AddWithValue("@ServerFilePatching", p.ServerFilePatching);
         cmd.Parameters.AddWithValue("@NoSound", p.NoSound);
         cmd.Parameters.AddWithValue("@NoSplash", p.NoSplash);
         cmd.Parameters.AddWithValue("@SkipIntro", p.SkipIntro);
@@ -692,6 +693,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             Port = I("Port"),
             EnableBattlEye = B("EnableBattlEye"),
             FilePatching = I("FilePatching"),
+            ServerFilePatching = B("ServerFilePatching"),
             NoSound = B("NoSound"),
             NoSplash = B("NoSplash"),
             SkipIntro = B("SkipIntro"),

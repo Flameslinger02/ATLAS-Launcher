@@ -42,13 +42,8 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L($"maxPing = {p.MaxPing};");
         L($"maxDesync = {p.MaxDesync};");
         L($"maxPacketLoss = {p.MaxPacketLoss};");
-        L($"MaxMsgSend = {p.MaxMsgSend};");
-        L($"MaxSizeNonguaranteed = {p.MaxSizeNonguaranteed};");
-        L($"MaxSizeGuaranteed = {p.MaxSizeGuaranteed};");
-        L($"MinBandwidth = {p.MinBandwidth.ToString(Inv)};");
-        L($"MaxBandwidth = {p.MaxBandwidth.ToString(Inv)};");
-        L($"MinErrorToSend = {p.MinErrorToSend.ToString(Inv)};");
-        L($"MinErrorToSendNear = {p.MinErrorToSendNear.ToString(Inv)};");
+        // MaxMsgSend / MaxSize* / Min-MaxBandwidth / MinErrorToSend* are basic.cfg keys (emitted in
+        // GenerateBasicCfg and honored via -cfg=basic.cfg) — not duplicated here to avoid divergent copies.
         L($"disconnectTimeout = {p.DisconnectTimeout};");
         L($"maxdisconnectTimeout = {p.MaxDisconnectTimeout};");
         if (p.MaxCustomFileSize > 0) L($"MaxCustomFileSize = {p.MaxCustomFileSize};");
@@ -99,8 +94,11 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         {
             L("// No mission template set — configure one on the Mission tab.");
         }
+        // autoInit has no effect in Arma unless persistent = 1, so force persistent on whenever autoInit is
+        // set (otherwise "autoInit=1; persistent=0;" silently does nothing and the mission never auto-loads).
+        var persistent = p.Persistent || p.AutoInit;
         L($"autoInit = {B(p.AutoInit)};");
-        L($"persistent = {B(p.Persistent)};");
+        L($"persistent = {B(persistent)};");
         if (p.AutoSelectMission) L("autoSelectMission = 1;");
         if (p.RandomMissionOrder) L("randomMissionOrder = 1;");
         L();
@@ -115,7 +113,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         // A threshold > 1.0 makes votes impossible to pass, which disables voting.
         var threshold = p.VotingEnabled ? p.VoteThreshold : 1.5f;
         L($"voteThreshold = {threshold.ToString(Inv)};");
-        L($"voteMissionPlayers = {p.VoteMissionPlayers.ToString(Inv)};");
+        L($"voteMissionPlayers = {(int)Math.Round(p.VoteMissionPlayers)};");
         L();
 
         // Scripting callbacks — only emit the advanced hooks that are set.
@@ -259,7 +257,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         if (serverOnly.Length > 0) Flag($"-serverMod={MaybeQuote(serverOnly)}");
 
         Flag(p.EnableBattlEye ? "-BattlEye" : "-noBattlEye");
-        if (p.FilePatching > 0) Flag("-filePatching");
+        if (p.ServerFilePatching) Flag("-filePatching");
         if (p.NetLog) Flag("-netlog");
         if (p.NoSound) Flag("-nosound");
         if (p.NoSplash) Flag("-nosplash");
@@ -338,7 +336,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
     }
 
     /// <summary>The Arma root folder names for the enabled creator/platform DLC, in a stable order.</summary>
-    private static IEnumerable<string> EnabledDlcFolders(ServerProfile p)
+    internal static IEnumerable<string> EnabledDlcFolders(ServerProfile p)
     {
         if (p.DlcContact) yield return "Contact";
         if (p.DlcGlobalMobilization) yield return "gm";

@@ -25,6 +25,10 @@ public partial class ConsoleViewModel : BaseViewModel, IDisposable
 
     [ObservableProperty] private string _statusMessage = string.Empty;
 
+    /// <summary>Selected tab on the Console page: 0 = ATLAS Log, 1 = Server RPT, 2 = Updates. Two-way bound to the
+    /// page's TabControl so the startup update banner can land the user straight on Updates (see <see cref="ShowUpdatesTab"/>).</summary>
+    [ObservableProperty] private int _selectedTabIndex;
+
     public ObservableCollection<string> ServerRpt { get; } = new();
 
     /// <summary>The "App Log" tab view model (ATLAS's own Serilog output).</summary>
@@ -45,6 +49,10 @@ public partial class ConsoleViewModel : BaseViewModel, IDisposable
 
         _subs.Add(_server.LogOutput.Subscribe(line => OnUi(() => AppendServerRpt(line))));
     }
+
+    /// <summary>Lands the Console page on the Updates tab (index 2). Called by the startup update banner's
+    /// "Update" button so the user arrives on the in-app updater rather than the default ATLAS Log tab.</summary>
+    public void ShowUpdatesTab() => SelectedTabIndex = 2;
 
     // ----- Server RPT log viewer -----
 

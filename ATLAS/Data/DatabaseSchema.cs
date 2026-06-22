@@ -7,7 +7,7 @@ namespace Atlas.Data;
 public static class DatabaseSchema
 {
     /// <summary>Increment on every schema change and add a migration step in <see cref="AtlasDatabase"/>.</summary>
-    public const int SchemaVersion = 9;
+    public const int SchemaVersion = 10;
 
     /// <summary>
     /// Full DDL for schema version 1. All statements use <c>IF NOT EXISTS</c> so this is idempotent.
@@ -124,7 +124,9 @@ CREATE TABLE IF NOT EXISTS ServerProfiles (
     RequiredSecureId    INTEGER NOT NULL DEFAULT 1,
 
     MissionName         TEXT    NOT NULL DEFAULT '',
-    MissionQueue        TEXT    NOT NULL DEFAULT '',
+    -- MissionQueue is added by the v8->v9 migration (AtlasDatabase.cs), NOT here. It must live in exactly
+    -- one place: a fresh DB runs CreateAllTables AND every migration, so duplicating the column would throw
+    -- a duplicate-column error and roll back the whole init, breaking all new installs.
     MissionDifficulty   TEXT    NOT NULL DEFAULT 'Regular',
     AutoInit            INTEGER NOT NULL DEFAULT 0,
     Persistent          INTEGER NOT NULL DEFAULT 0,

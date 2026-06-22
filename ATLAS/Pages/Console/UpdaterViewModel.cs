@@ -109,8 +109,11 @@ public partial class UpdaterViewModel : BaseViewModel
         _armaCts = new CancellationTokenSource();
         IsUpdatingArma = true;
         ArmaOutput.Clear();
-        AppendArma($"Installing / updating Arma 3 server into:\r\n  {dir}");
-        AppendArma(UseProfilingBranch ? "Branch: profiling" : "Branch: release");
+        var updatingGame = ArmaInstallLocator.LooksLikeGameInstall(dir);
+        AppendArma(updatingGame
+            ? $"Updating Arma 3 in place (game install — the dedicated server ships with it):\r\n  {dir}"
+            : $"Installing / updating the Arma 3 dedicated server into:\r\n  {dir}");
+        AppendArma(UseProfilingBranch && !updatingGame ? "Branch: profiling" : "Branch: release");
 
         var progress = new Progress<string>(line => OnUi(() => AppendArma(line)));
         try

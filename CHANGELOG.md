@@ -2,6 +2,35 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.10] — 2026-06-22
+
+### Added
+- **Unpacked missions** — the mission scanner now lists unpacked mission folders (a folder containing
+  `mission.sqm`) under `MPMissions`/`Missions`, not just packed `.pbo` files.
+- **Whole mod library in each profile** — a profile's **Mods** tab now lists every mod in your library;
+  the **Server / Client / Headless** checkboxes decide which are active for that profile. Adding a mod
+  (Workshop or local) adds it to the library and activates it for the current profile.
+- **Server file patching** — a dedicated Config-tab toggle for the server's `-filePatching` switch
+  (separate from the client-facing *allowed file patching* setting); required to load unpacked missions.
+
+### Changed
+- **In-place, app-aware server update** — ATLAS now updates the Steam app actually installed in the target
+  folder: your **Arma 3** install (the dedicated server ships with the game) when that's what's there,
+  otherwise the **standalone dedicated server** — instead of always installing the standalone server app.
+  No separate folder required, and it never installs a different app on top of an existing one.
+- The startup **update banner** now opens directly to the **Console → Updates** tab.
+- **autoInit** now also sets `persistent = 1` (autoInit has no effect in Arma without it).
+- **Headless clients** now get the same creator-DLC folders as the server in their `-mod=` line, so
+  DLC-dependent missions load on the headless client.
+- Network tuning keys (`MaxMsgSend`, max message sizes, bandwidth, error-to-send) are written to
+  `basic.cfg` only (no longer duplicated into `server.cfg`).
+- `voteMissionPlayers` is written as a whole number.
+
+### Fixed
+- **Fresh installs could fail to create their database** (`duplicate column name: MissionQueue`), leaving
+  a brand-new user unable to start. New databases now initialize cleanly.
+- The server updater no longer risks **overwriting/corrupting an existing Arma 3 game install**.
+
 ## [0.3.6] — 2026-06-22
 
 ### Changed

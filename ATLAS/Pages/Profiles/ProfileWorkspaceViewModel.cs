@@ -33,6 +33,7 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
     private readonly IConfigGeneratorService _configGen;
     private readonly IServerProcessService _process;
     private readonly IDialogService _dialogs;
+    private readonly IModLibraryService _modLibrary;
 
     /// <summary>The working copy currently being edited (a clone of the active profile).</summary>
     [ObservableProperty] private ServerProfile? _profile;
@@ -105,7 +106,7 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
 
     public ProfileWorkspaceViewModel(IProfileService profiles, IMissionService missions,
         IModPresetService presets, IConfigGeneratorService configGen, IServerProcessService process,
-        IDialogService dialogs)
+        IDialogService dialogs, IModLibraryService modLibrary)
     {
         _profiles = profiles;
         _missions = missions;
@@ -113,6 +114,7 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         _configGen = configGen;
         _process = process;
         _dialogs = dialogs;
+        _modLibrary = modLibrary;
         Title = "Profiles";
 
         // The active profile is set by the sidebar (OpenProfile) before navigating here, so edit it.
@@ -146,6 +148,9 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
 
         Mods.Clear();
         foreach (var m in Profile.Mods) Mods.Add(m);
+        // Manual profiles show the WHOLE mod library with per-profile activation checkboxes; a preset-managed
+        // profile shows only the preset's mods (its list is driven by the preset).
+        if (Profile.ActiveModPresetId is null) _ = MergeLibraryModsAsync();
         RefreshModSummary();
         _ = BuildPresetChoicesAsync();
 
@@ -177,7 +182,9 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         Profile.AllowedHTMLLoadExtensions = HtmlExtensions.ToList();
         Profile.AllowedHTMLLoadURIs = HtmlUris.ToList();
         for (var i = 0; i < Mods.Count; i++) Mods[i].LoadOrder = i;
-        Profile.Mods = Mods.ToList();
+        // Only mods activated for THIS profile (any of server/client/headless ticked) are persisted to
+        // ProfileMods; the rest are library rows shown for selection but not part of this profile.
+        Profile.Mods = Mods.Where(IsModActive).ToList();
 
         // Flush the checked missions into the rotation — but only once a scan has populated the grid, so we never
         // overwrite a saved queue with an empty grid before the (async) scan completes.
@@ -429,6 +436,7 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         if (value.Id is null)
         {
             Profile.ActiveModPresetId = null;
+            _ = MergeLibraryModsAsync();   // back to manual: show the whole library again
         }
         else
         {
@@ -475,8 +483,7 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         if (string.IsNullOrWhiteSpace(input)) return;
         var id = ParseWorkshopId(input);
         if (id == 0) { await _dialogs.ShowErrorAsync("Invalid input", "Could not find a Workshop ID."); return; }
-        Mods.Add(new ArmaModEntry { WorkshopId = id, Name = $"Workshop {id}", FolderName = $"@{id}", LoadOrder = Mods.Count });
-        RefreshModSummary();
+        AddOrActivate(new ArmaModEntry { WorkshopId = id, Name = $"Workshop {id}", FolderName = $"@{id}" });
     }
 
     [RelayCommand]
@@ -486,16 +493,14 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         var folder = await _dialogs.BrowseFolderAsync("Select local mod folder (@ModName)");
         if (string.IsNullOrWhiteSpace(folder)) return;
         var folderName = new DirectoryInfo(folder).Name;
-        Mods.Add(new ArmaModEntry
+        AddOrActivate(new ArmaModEntry
         {
             WorkshopId = 0,
             IsLocal = true,
             LocalPath = folder,
             Name = folderName.TrimStart('@'),
             FolderName = folderName.StartsWith('@') ? folderName : "@" + folderName,
-            LoadOrder = Mods.Count,
         });
-        RefreshModSummary();
     }
 
     [RelayCommand]
@@ -508,8 +513,7 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         try
         {
             var imported = await _presets.ParseA3LauncherPresetAsync(path);
-            foreach (var mod in imported) { mod.LoadOrder = Mods.Count; Mods.Add(mod); }
-            RefreshModSummary();
+            foreach (var mod in imported) AddOrActivate(mod);
         }
         catch (Exception ex)
         {
@@ -548,8 +552,66 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
 
     private void RefreshModSummary()
     {
-        var count = Mods.Count;
-        ModSummary = $"{count} mod{(count == 1 ? "" : "s")}";
+        var active = Mods.Count(IsModActive);
+        var total = Mods.Count;
+        ModSummary = $"{active} active / {total} in library";
+    }
+
+    /// <summary>Adds every library mod not already on this profile to the grid as an inactive row, so the profile
+    /// Mods tab shows the whole library and you activate per profile via the checkboxes. Manual mode only.</summary>
+    private async Task MergeLibraryModsAsync()
+    {
+        if (Profile is null || Profile.ActiveModPresetId is not null) return;
+        List<ArmaModEntry> library;
+        try { library = await _modLibrary.GetAllModsAsync(); }
+        catch (Exception ex) { Log.Warning(ex, "Could not load the global mod library for the profile Mods tab."); return; }
+
+        var present = new HashSet<string>(Mods.Select(ModKey), StringComparer.OrdinalIgnoreCase);
+        foreach (var lib in library)
+        {
+            if (!present.Add(ModKey(lib))) continue;   // already on the profile, or a duplicate library row
+            // Shown for selection but not active for this profile until the user ticks a box.
+            lib.EnabledForServer = false;
+            lib.EnabledForClient = false;
+            lib.EnabledForHeadless = false;
+            lib.IsServerOnly = false;
+            lib.IsHeadlessOnly = false;
+            lib.IsOptional = false;
+            Mods.Add(lib);
+        }
+        RefreshModSummary();
+    }
+
+    /// <summary>Stable identity for a mod: Workshop id when present, else folder name, else display name.</summary>
+    private static string ModKey(ArmaModEntry m) =>
+        m.WorkshopId != 0 ? "w:" + m.WorkshopId
+        : !string.IsNullOrWhiteSpace(m.FolderName) ? "f:" + m.FolderName.ToLowerInvariant()
+        : "n:" + (m.Name ?? string.Empty).ToLowerInvariant();
+
+    /// <summary>A mod is active for the profile when any runtime role (server/client/headless) is ticked.</summary>
+    private static bool IsModActive(ArmaModEntry m) => m.EnabledForServer || m.EnabledForClient || m.EnabledForHeadless;
+
+    /// <summary>Activates a mod for this profile: ticks the existing library row if present (re-inserted so the
+    /// grid checkbox refreshes — ArmaModEntry isn't observable), otherwise adds it as a new active row.</summary>
+    private void AddOrActivate(ArmaModEntry mod)
+    {
+        var key = ModKey(mod);
+        var existing = Mods.FirstOrDefault(m => string.Equals(ModKey(m), key, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            var i = Mods.IndexOf(existing);
+            existing.EnabledForServer = true;
+            Mods.RemoveAt(i);
+            Mods.Insert(i, existing);
+            SelectedMod = existing;
+        }
+        else
+        {
+            mod.LoadOrder = Mods.Count;
+            Mods.Add(mod);
+            SelectedMod = mod;
+        }
+        RefreshModSummary();
     }
 
     // ===================================================================== Missions

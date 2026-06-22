@@ -482,6 +482,8 @@
                                             <TextBlock Style="{StaticResource Lbl}" Text="Allowed file patching"/>
                                             <ComboBox ItemsSource="{Binding FilePatchingOptions}"
                                                       SelectedIndex="{Binding Profile.FilePatching, Mode=TwoWay}"/>
+                                            <CheckBox Content="Server file patching (loads loose files / unpacked missions)"
+                                                      IsChecked="{Binding Profile.ServerFilePatching}"/>
                                             <TextBlock Style="{StaticResource Lbl}" Text="Required client build (0 = any)"/>
                                             <TextBox Style="{StaticResource Num}" Text="{Binding Profile.RequiredBuild}"/>
                                         </StackPanel>

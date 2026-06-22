@@ -28,8 +28,9 @@ public static class AppConstants
     public const int MaxPort = 65535;
 
     // ----- Steam -----
-    public const string Arma3ServerAppId = "233780"; // Arma 3 Dedicated Server
+    public const string Arma3ServerAppId = "233780"; // Arma 3 Dedicated Server (standalone)
     public const string Arma3WorkshopAppId = "107410"; // Arma 3 game (workshop content)
+    public const string Arma3GameAppId = "107410";     // Arma 3 game — the dedicated server ships with it
     public const string SteamCmdDownloadUrl = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
 
     // ----- GitHub (Phase 0 Q1 — update checker / About) -----
