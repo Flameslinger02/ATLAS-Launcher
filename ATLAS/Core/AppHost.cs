@@ -6,6 +6,7 @@ using Atlas.Pages.Dashboard;
 using Atlas.Pages.DiscordBot;
 using Atlas.Pages.HeadlessClients;
 using Atlas.Pages.ModPresets;
+using Atlas.Pages.Mods;
 using Atlas.Pages.Profiles;
 using Atlas.Pages.Scheduler;
 using Atlas.Pages.Settings;
@@ -50,6 +51,7 @@ public static class AppHost
                 services.AddSingleton<ISecretProtector, DpapiSecretProtector>();
                 services.AddSingleton<ISteamCmdService, SteamCmdService>();
                 services.AddSingleton<IModDeploymentService, ModDeploymentService>();
+                services.AddSingleton<IModLibraryService, ModLibraryService>();
 
                 // ---- Phase 6: missions ----
                 services.AddSingleton<IMissionService, MissionService>();
@@ -92,8 +94,12 @@ public static class AppHost
                 // (NavigationService does not call OnNavigatedFrom). Their pages stay transient.
                 services.AddTransient<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-                services.AddTransient<ModPresetsPage>();
+                // The standalone Mod Presets page is folded into the global Mods hub; its view model
+                // stays registered (composed into ModsViewModel as the hub's Presets tab).
                 services.AddTransient<ModPresetsViewModel>();
+                services.AddTransient<ModsPage>();
+                // Singleton: an in-flight SteamCMD download keeps streaming across navigation (like UpdaterViewModel).
+                services.AddSingleton<ModsViewModel>();
                 // Profiles: the overview page + the sidebar profile list share ONE ProfilesViewModel
                 // (singleton) so they stay in sync. The per-profile editor (workspace) is transient.
                 services.AddTransient<ProfilesPage>();

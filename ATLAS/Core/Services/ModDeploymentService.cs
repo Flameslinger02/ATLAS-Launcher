@@ -146,33 +146,53 @@ public sealed class ModDeploymentService : IModDeploymentService
 
     // ------------------------------------------------------------------ cleanup
 
-    public async Task CleanupStaleDeployedModsAsync(ServerProfile profile, CancellationToken ct = default)
+    public async Task CleanupStaleDeployedModsAsync(ServerProfile profile, IProgress<string>? progress = null,
+        CancellationToken ct = default)
     {
-        if (!Directory.Exists(profile.ServerDirectory)) return;
+        if (string.IsNullOrWhiteSpace(profile.ServerDirectory) || !Directory.Exists(profile.ServerDirectory))
+        {
+            progress?.Report($"Server directory not found ('{profile.ServerDirectory}') — nothing to clean.");
+            return;
+        }
 
+        // The mod folder names this profile still expects in its server dir (the ones Deploy keeps).
         var enabled = profile.Mods
             .Where(m => m.EnabledForServer)
             .Select(m => m.FolderName)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var scanned = 0;
+        var removed = 0;
+        var skippedReal = 0;
 
         try
         {
             foreach (var dir in Directory.EnumerateDirectories(profile.ServerDirectory, "@*"))
             {
                 ct.ThrowIfCancellationRequested();
-
+                scanned++;
                 var di = new DirectoryInfo(dir);
-                if (!di.Attributes.HasFlag(FileAttributes.ReparsePoint)) continue; // only remove links, never real dirs
-                if (enabled.Contains(di.Name)) continue;
+
+                if (!di.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                {
+                    // A real (copied) folder, not a link — never auto-delete real data, just flag it.
+                    skippedReal++;
+                    progress?.Report($"Skipped '{di.Name}' — a real folder, not a link (left untouched).");
+                    continue;
+                }
+                if (enabled.Contains(di.Name)) continue; // still in the modset — keep it
 
                 try
                 {
                     // recursive:false is critical on a reparse point — never delete through the link target.
                     Directory.Delete(dir, recursive: false);
+                    removed++;
+                    progress?.Report($"Removed stale link '{di.Name}'.");
                     Log.Information("Removed stale deployed link {Dir}.", dir);
                 }
                 catch (Exception ex)
                 {
+                    progress?.Report($"WARNING: couldn't remove '{di.Name}': {ex.Message}");
                     Log.Warning(ex, "Failed to remove stale deployed link {Dir}.", dir);
                 }
             }
@@ -183,8 +203,15 @@ public sealed class ModDeploymentService : IModDeploymentService
         }
         catch (Exception ex)
         {
+            progress?.Report($"ERROR scanning for stale links: {ex.Message}");
             Log.Error(ex, "Failed to enumerate deployed mods for cleanup in {Dir}.", profile.ServerDirectory);
         }
+
+        progress?.Report(removed == 0
+            ? $"No stale links to remove ({scanned} '@' folder(s) scanned"
+              + (skippedReal > 0 ? $", {skippedReal} real folder(s) left untouched" : "") + ")."
+            : $"Removed {removed} stale link(s) of {scanned} '@' folder(s) scanned"
+              + (skippedReal > 0 ? $"; {skippedReal} real folder(s) left untouched" : "") + ".");
 
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -202,8 +229,9 @@ public sealed class ModDeploymentService : IModDeploymentService
     private static string GetModSourceFolder(ArmaModEntry mod, string stagingRoot) =>
         mod.IsLocal
             ? mod.LocalPath
-            : Path.Combine(stagingRoot, "steamapps", "workshop", "content",
-                AppConstants.Arma3WorkshopAppId, mod.WorkshopId.ToString());
+            // Tolerant resolution: works whether stagingRoot is the Steam root, steamapps, …\workshop, or
+            // …\content\107410 — so deploy finds mods wherever the user pointed the directory.
+            : WorkshopPaths.ResolveModFolder(stagingRoot, mod.WorkshopId);
 
     private static IEnumerable<string> EnumerateBikeys(string source)
     {

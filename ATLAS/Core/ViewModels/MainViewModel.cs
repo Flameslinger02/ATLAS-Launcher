@@ -75,7 +75,7 @@ public partial class MainViewModel : ObservableObject
         };
         NavItemsBottom = new ObservableCollection<NavItem>
         {
-            new() { Key = AppConstants.Pages.ModPresets,      Label = "Mod Presets",      Icon = PackIconKind.PackageVariant },
+            new() { Key = AppConstants.Pages.Mods,            Label = "Mods",             Icon = PackIconKind.PackageVariant },
             new() { Key = AppConstants.Pages.HeadlessClients, Label = "Headless Clients", Icon = PackIconKind.Server },
             new() { Key = AppConstants.Pages.DiscordBot,      Label = "Discord Bot",      Icon = PackIconKind.Robot },
             new() { Key = AppConstants.Pages.Scheduler,       Label = "Scheduler",        Icon = PackIconKind.CalendarClock },

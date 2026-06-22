@@ -82,9 +82,12 @@
                                  Text="{Binding SteamUsername, UpdateSourceTrigger=PropertyChanged}"/>
                         <CheckBox Style="{StaticResource Check}" Content="Remember username (uses SteamCMD's cached login token)"
                                   IsChecked="{Binding RememberSteamCredentials}"/>
-                        <Button Content="Clear Saved Credentials" Style="{StaticResource Atlas.Button.Secondary}"
-                                HorizontalAlignment="Left" Margin="0,12,0,0"
-                                Command="{Binding ClearSavedCredentialsCommand}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button Content="Log in to Steam" Style="{StaticResource Atlas.Button.Primary}"
+                                    Margin="0,0,8,0" Command="{Binding LogInToSteamCommand}"/>
+                            <Button Content="Clear Saved Credentials" Style="{StaticResource Atlas.Button.Secondary}"
+                                    Command="{Binding ClearSavedCredentialsCommand}"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

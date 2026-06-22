@@ -2,6 +2,31 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.5] — 2026-06-21
+
+### Added
+- **Global Mods hub** — a single **Mods** page with two tabs: a **Library** of every mod ATLAS knows about
+  (across all profiles and presets) and your **Presets**. From the Library you can add and download Workshop
+  items, check the Workshop for updates and batch-update, deploy a chosen profile's mods, sync BattlEye keys,
+  and check for duplicate-key conflicts — all with live output. The standalone Mod Presets page is folded in.
+- **In-app Steam login** — log in to Steam from inside ATLAS (Mods or Settings). Your username and password are
+  entered in a masked prompt; the password is used **once** to establish SteamCMD's cached session and is
+  **never stored**. Steam Guard codes are prompted when required, and downloads/updates log you in automatically
+  if the cached session is missing or expired.
+- **Mod download directory** — choose where SteamCMD downloads Workshop mods. Point it at your existing Steam
+  install and ATLAS reuses the mods already on disk instead of downloading duplicates.
+
+### Changed
+- **Clean Stale Links** now reports exactly what it scanned, removed, and left untouched (real copied folders are
+  never deleted) instead of finishing silently.
+
+### Fixed
+- **Mod paths** — deploy and download now resolve Workshop folders correctly whether the mod directory points at
+  your Steam root, `steamapps`, `…\workshop`, or `…\content\107410`; fixes a "source folder missing" error and a
+  duplicated `steamapps\workshop` tree.
+- **Logs** — the log file under `%AppData%\ATLAS\Logs` is now flushed to disk during the session and on exit, so
+  it stays current for troubleshooting (previously it could appear frozen).
+
 ## [0.3.1] — 2026-06-21
 
 ### Added

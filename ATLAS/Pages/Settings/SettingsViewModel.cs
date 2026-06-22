@@ -192,6 +192,37 @@ public partial class SettingsViewModel : BaseViewModel
         StatusMessage = "Saved Steam credentials cleared.";
     }
 
+    [RelayCommand]
+    private async Task LogInToSteam()
+    {
+        if (!await _steam.IsSteamCmdAvailableAsync())
+        {
+            await _dialogs.ShowErrorAsync("SteamCMD not set up",
+                "Install SteamCMD first (Download SteamCMD above), then log in.");
+            return;
+        }
+        var prefill = string.IsNullOrWhiteSpace(SteamUsername) ? (_steam.GetSavedUsername() ?? string.Empty) : SteamUsername;
+        var user = await _dialogs.PromptAsync("Log in to Steam", "Steam username", prefill);
+        if (string.IsNullOrWhiteSpace(user)) return;
+        var pass = await _dialogs.PromptAsync("Log in to Steam",
+            "Steam password (used once to log in — never stored by ATLAS).", string.Empty, isPassword: true);
+        if (string.IsNullOrWhiteSpace(pass)) return;
+
+        await RunBusyAsync("Logging in to Steam…", async ct =>
+        {
+            var progress = new Progress<string>(line => OnUi(() => BusyStatus = line));
+            Func<CancellationToken, Task<string?>> guard = _ =>
+                _dialogs.PromptAsync("Steam Guard",
+                    "Enter the Steam Guard code (from your email or the Steam mobile app).", string.Empty);
+            var ok = await _steam.LoginAsync(user.Trim(), pass, progress, ct, guard);
+            OnUi(() => SteamUsername = _steam.GetSavedUsername() ?? user.Trim());
+            await _dialogs.ShowInfoAsync("Steam login",
+                ok ? "Logged in to Steam. Mod downloads and updates won't prompt again."
+                   : "Login didn't complete. Check your username, password, and Steam Guard code, then try again.");
+            StatusMessage = ok ? "Logged in to Steam." : "Steam login didn't complete.";
+        });
+    }
+
     // ----------------------------------------------------------------- mod staging
 
     [RelayCommand]

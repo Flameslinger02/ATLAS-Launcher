@@ -49,6 +49,15 @@ public interface ISteamCmdService
     /// <summary>Persists the Steam username to settings.</summary>
     void SaveUsername(string username);
 
+    /// <summary>
+    /// Logs in to Steam non-interactively: <paramref name="password"/> is passed to SteamCMD for this one run
+    /// and is never stored or logged. SteamCMD caches a session token on success (so later hidden runs need no
+    /// credentials) and the username is saved. A Steam Guard code, if required, is requested via
+    /// <paramref name="steamGuardProvider"/>. Returns true when login is confirmed in SteamCMD's output.
+    /// </summary>
+    Task<bool> LoginAsync(string username, string password, IProgress<string> progress,
+        CancellationToken ct, Func<CancellationToken, Task<string?>>? steamGuardProvider = null);
+
     /// <summary>Clears the saved username and best-effort removes SteamCMD's cached login tokens.</summary>
     void ClearSavedCredentials();
 

@@ -25,6 +25,14 @@ public sealed class SteamCmdService : ISteamCmdService
         "two factor",
     ];
 
+    // Substrings (case-insensitive) that indicate SteamCMD is waiting for an account PASSWORD — i.e. there
+    // is no cached session. ATLAS never sends a password, so detecting this lets the (interactive) mod
+    // download path fail fast with a clear "log in first" message instead of blocking on stdin forever.
+    private static readonly string[] PasswordPrompts =
+    [
+        "password:",
+    ];
+
     private readonly ISettingsService _settings;
 
     public SteamCmdService(ISettingsService settings) => _settings = settings;
@@ -163,9 +171,19 @@ public sealed class SteamCmdService : ISteamCmdService
         }
         args.Add("+quit");
 
+        // Watch for the pump's "not logged in" marker (SteamCMD asked for a password we can't supply through
+        // a pipe) so the caller can run a login and retry instead of silently downloading nothing.
+        var loginRequired = false;
+        var sink = new InlineProgress<string>(line =>
+        {
+            if (line.Contains("Not logged in to Steam", StringComparison.OrdinalIgnoreCase)) loginRequired = true;
+            progress.Report(line);
+        });
+
         Log.Information("Downloading {Count} Workshop item(s) (app {AppId}) into {Path}.",
             ids.Count, AppConstants.Arma3WorkshopAppId, stagingPath);
-        await RunSteamCmdAsync(args, progress, ct, steamGuardProvider).ConfigureAwait(false);
+        await RunSteamCmdAsync(args, sink, ct, steamGuardProvider).ConfigureAwait(false);
+        if (loginRequired) throw new SteamLoginRequiredException();
     }
 
     // ------------------------------------------------------------------ staleness
@@ -190,6 +208,68 @@ public sealed class SteamCmdService : ISteamCmdService
         _settings.Settings.SteamUsername = username ?? string.Empty;
         // Fire-and-forget persist; SaveAsync logs and never throws.
         _ = _settings.SaveAsync();
+    }
+
+    public async Task<bool> LoginAsync(string username, string password, IProgress<string> progress,
+        CancellationToken ct, Func<CancellationToken, Task<string?>>? steamGuardProvider = null)
+    {
+        username = (username ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(username))
+            throw new ArgumentException("A Steam username is required.", nameof(username));
+
+        // Non-interactive login: the password is passed to SteamCMD for THIS run only and is never stored or
+        // logged. SteamCMD caches a session token on success, so later hidden runs (mod download/update) need
+        // no credentials. A Steam Guard code, if required, is answered via the same stdin handler used by mods.
+        var args = new List<string> { "+login", username };
+        if (!string.IsNullOrEmpty(password)) args.Add(password);
+        args.Add("+quit");
+
+        var sawSuccess = false;
+        var sawFailure = false;
+        var sink = new InlineProgress<string>(line =>
+        {
+            if (line.Contains("Waiting for user info", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Logged in OK", StringComparison.OrdinalIgnoreCase))
+                sawSuccess = true;
+            if (line.Contains("FAILED login", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Login Failure", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("code mismatch", StringComparison.OrdinalIgnoreCase) ||
+                line.Contains("Invalid Login", StringComparison.OrdinalIgnoreCase))
+                sawFailure = true;
+            progress.Report(line);
+        });
+
+        // Bound the run so a prompt SteamCMD can't surface through the pipe can't hang us forever.
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromMinutes(3));
+
+        Log.Information("Logging in to Steam as {User} via SteamCMD.", username);  // password is never logged
+        try
+        {
+            await RunSteamCmdAsync(args, sink, timeoutCts.Token, steamGuardProvider).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            if (ct.IsCancellationRequested) throw;   // user cancelled
+            progress.Report("✖ Login timed out — no response from Steam (check your password / Steam Guard).");
+            return false;
+        }
+
+        // SteamCMD's success line can race the pipe closing, so treat "no explicit failure" as success — a
+        // wrong password or Steam Guard code prints a clear FAILED / mismatch line first.
+        var ok = sawSuccess || !sawFailure;
+        if (ok) SaveUsername(username);
+        return ok;
+    }
+
+    /// <summary>An <see cref="IProgress{T}"/> whose callback runs inline on the caller's thread (unlike
+    /// <see cref="Progress{T}"/>, which posts asynchronously), so a flag set in the callback is observable
+    /// as soon as the producing pump has finished.</summary>
+    private sealed class InlineProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _on;
+        public InlineProgress(Action<T> on) => _on = on;
+        public void Report(T value) => _on(value);
     }
 
     public void ClearSavedCredentials()
@@ -477,6 +557,15 @@ public sealed class SteamCmdService : ISteamCmdService
                         await proc.StandardInput.FlushAsync().ConfigureAwait(false);
                     }
                 }
+                else if (steamGuardProvider is not null && IsPasswordPrompt(rolling.ToString()))
+                {
+                    // No cached Steam session: SteamCMD wants a password, which ATLAS never sends. Close
+                    // stdin so SteamCMD fails immediately instead of blocking WaitForExit forever.
+                    rolling.Clear();
+                    line.Clear();
+                    progress.Report("⚠ Not logged in to Steam — use \"Log in to Steam\" first (no cached session).");
+                    TryCloseStdin(proc);
+                }
             }
 
             if (line.Length > 0) ReportLine(line.ToString());
@@ -484,6 +573,10 @@ public sealed class SteamCmdService : ISteamCmdService
         catch (OperationCanceledException)
         {
             // Cancellation handled by the caller (process is killed there).
+        }
+        catch (System.IO.IOException)
+        {
+            // SteamCMD closed the pipe as it exited — a normal end-of-stream on Windows, not an error.
         }
         catch (Exception ex)
         {
@@ -542,6 +635,15 @@ public sealed class SteamCmdService : ISteamCmdService
     private static bool IsSteamGuardPrompt(string text)
     {
         foreach (var token in SteamGuardPrompts)
+        {
+            if (text.Contains(token, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsPasswordPrompt(string text)
+    {
+        foreach (var token in PasswordPrompts)
         {
             if (text.Contains(token, StringComparison.OrdinalIgnoreCase)) return true;
         }

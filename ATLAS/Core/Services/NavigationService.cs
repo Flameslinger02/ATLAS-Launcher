@@ -3,7 +3,7 @@ using Atlas.Pages.Console;
 using Atlas.Pages.Dashboard;
 using Atlas.Pages.DiscordBot;
 using Atlas.Pages.HeadlessClients;
-using Atlas.Pages.ModPresets;
+using Atlas.Pages.Mods;
 using Atlas.Pages.Profiles;
 using Atlas.Pages.Scheduler;
 using Atlas.Pages.Settings;
@@ -28,7 +28,7 @@ public sealed class NavigationService : INavigationService
         _pageMap = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
             [AppConstants.Pages.Dashboard] = typeof(DashboardPage),
-            [AppConstants.Pages.ModPresets] = typeof(ModPresetsPage),
+            [AppConstants.Pages.Mods] = typeof(ModsPage),                         // global mod hub (library + presets)
             [AppConstants.Pages.Profiles] = typeof(ProfilesPage),                 // all-profiles overview
             [AppConstants.Pages.ProfileWorkspace] = typeof(ProfileWorkspacePage), // single-profile editor
             [AppConstants.Pages.HeadlessClients] = typeof(HeadlessClientsPage),

@@ -59,9 +59,19 @@ public partial class App : Application
                 Path.Combine(AppConstants.LogsDirectory, "atlas-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 30,
+                // Force a disk flush every second so the log file (and its modified-time) stay current even
+                // on an abrupt exit — the async-void OnExit can lose the race with process teardown before
+                // Log.CloseAndFlush() runs, which made the file look "frozen" during test builds.
+                flushToDiskInterval: TimeSpan.FromSeconds(1),
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.Sink(_appLog)
             .CreateLogger();
+
+        // Belt-and-suspenders flush: OnExit is async void and can lose the race with process teardown, and any
+        // Environment.Exit path (e.g. the self-update relaunch) skips it entirely. ProcessExit runs synchronously
+        // at process end, so the log file is always closed and flushed. With flushToDiskInterval this keeps the
+        // on-disk log current during the session and complete after exit.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Log.CloseAndFlush();
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;

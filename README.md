@@ -4,15 +4,16 @@ A modern Windows desktop launcher and admin console for **Arma 3 dedicated serve
 profiles, mods, missions, scheduling, BattlEye RCON, headless clients, and Discord integration from a single
 self contained application — a spiritual successor to FASTER/TADST with a live admin console.
 
-> **Status:** v0.3.1 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
+> **Status:** v0.3.5 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
 
 ---
 
 ## Features
 
 - **Server profiles** — full `server.cfg` / `basic.cfg` generation, live launch-command preview, import/export.
-- **Mods** — SteamCMD download/update, mod presets, Arma 3 Launcher `.html` preset import, junction point
-  deployment with key handling, per mod headless client targeting.
+- **Mods** — a global **Mods hub** (library + presets): SteamCMD download/update, check + batch-update against
+  the Workshop, junction-point deployment with BattlEye key handling and duplicate-key checks, Arma 3 Launcher
+  `.html` preset import, and per mod headless client targeting.
 - **Missions** — scan `MPMissions`, set the active mission or a multi-mission **rotation**, and parameters.
 - **Process management** — launch/stop/restart with crash detection and optional auto restart; live RPT log tail
   and CPU/RAM sampling on the Dashboard.
@@ -45,10 +46,11 @@ self contained application — a spiritual successor to FASTER/TADST with a live
 
 ### SteamCMD / Steam login
 
-ATLAS uses SteamCMD's own cached session model (FASTER style): you enter a **username only** — your Steam password
-is **never** stored or passed to ATLAS. Steam Guard prompts are detected and surfaced for input when needed. For
-Workshop metadata and preview images, add a free **Steam Web API key** (Settings → Steam Web API Key); it is stored
-encrypted.
+ATLAS uses SteamCMD's own cached session model (FASTER style): **log in once** with your Steam username and password
+in a masked prompt. The password is used only to establish SteamCMD's cached session and is **never stored** by
+ATLAS; afterwards downloads and updates reuse the cached token, and Steam Guard prompts are detected and surfaced for
+input when needed. For Workshop metadata and preview images, add a free **Steam Web API key** (Settings → Steam Web
+API Key); it is stored encrypted.
 
 ### BattlEye RCON
 
