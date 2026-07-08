@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Text;
 using System.Windows;
@@ -25,17 +24,10 @@ public partial class HcLogWindow : Window
         _directory = directory;
         Title = $"{name} — Log";
         HeaderText.Text = $"{name} RPT tail — {directory}";
-        LogList.ItemsSource = _lines;
-        _lines.CollectionChanged += OnLinesChanged;
+        LogList.ItemsSource = _lines;   // tail-follow is handled by AutoScrollBehavior in the XAML
 
         Loaded += (_, _) => _ = Task.Run(() => TailAsync(_cts.Token));
         Closed += (_, _) => { try { _cts.Cancel(); _cts.Dispose(); } catch { /* ignore */ } };
-    }
-
-    private void OnLinesChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action == NotifyCollectionChangedAction.Add && LogList.Items.Count > 0)
-            LogList.ScrollIntoView(LogList.Items[^1]);
     }
 
     private void Append(string line) => Dispatcher.InvokeAsync(() =>

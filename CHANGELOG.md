@@ -2,6 +2,23 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.12] — 2026-07-07
+
+### Added
+- **"Add from Library" for mod presets** — pick mods ATLAS already knows about from a filterable,
+  multi-select list instead of re-pasting Workshop IDs. Presets → Add from Library.
+- **Mission Dependencies** — a **Dependencies** button on the Missions tab reads a mission's `mission.sqm`
+  (packed `.pbo` or unpacked folder, plain-text or binarized) and shows its required addons, with Copy All.
+
+### Changed
+- **Stop / Force Kill now work while the server is still starting up.** Previously both were disabled (or
+  silently queued) for the whole ~20s startup window; a stop now aborts an in-progress launch immediately.
+- **Log views auto-scroll properly.** Every log/output view (ATLAS Log, Server RPT, Updates output, RCON
+  console, Mods output, headless-client logs, Dashboard log tail) now opens at the bottom, follows new
+  output, and only stops following when you scroll up — scrolling back to the bottom resumes it.
+- The **autoInit** checkbox now explains its requirements in a tooltip (forces `persistent=1`; the mission
+  needs base/instant respawn to keep running with 0 players; disables mission Parameters).
+
 ## [0.3.10] — 2026-06-22
 
 ### Added

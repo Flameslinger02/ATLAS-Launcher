@@ -32,6 +32,10 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
     private volatile bool _stopRequested;
     private CancellationTokenSource? _tailCts;
 
+    /// <summary>The active launch's CTS (guarded by _gate). StopAsync cancels it so an in-progress
+    /// launch (config write / mod deploy) aborts instead of making the stop queue behind it.</summary>
+    private CancellationTokenSource? _launchCts;
+
     // CPU sampling state (delta-based; meaningful only when polled periodically).
     private TimeSpan _lastCpu;
     private DateTime _lastCpuSampleUtc;
@@ -61,17 +65,29 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
 
     public async Task LaunchAsync(ServerProfile profile, CancellationToken ct = default)
     {
-        await _launchLock.WaitAsync(ct).ConfigureAwait(false);
+        var launchCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        lock (_gate) _launchCts = launchCts;
         try
         {
-            _crashCount = 0;             // a manual launch resets the crash budget
-            await LaunchInternalAsync(profile, ct).ConfigureAwait(false);
+            await _launchLock.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                _crashCount = 0;             // a manual launch resets the crash budget
+                await LaunchInternalAsync(profile, launchCts.Token).ConfigureAwait(false);
+            }
+            finally { _launchLock.Release(); }
         }
-        finally { _launchLock.Release(); }
+        finally { ClearLaunchCts(launchCts); }
     }
 
     public async Task StopAsync(bool force = false, CancellationToken ct = default)
     {
+        // A stop must interrupt an in-progress launch rather than queue behind it — otherwise the Stop /
+        // force-kill buttons appear dead for the whole startup window. _stopRequested is set first so a
+        // process the launch already started resolves to Stopped (not Crashed → auto-restart) when killed.
+        _stopRequested = true;
+        lock (_gate) _launchCts?.Cancel();
+
         await _launchLock.WaitAsync(ct).ConfigureAwait(false);
         try { await StopInternalAsync(force, ct).ConfigureAwait(false); }
         finally { _launchLock.Release(); }
@@ -79,30 +95,50 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
 
     public async Task RestartAsync(CancellationToken ct = default)
     {
-        await _launchLock.WaitAsync(ct).ConfigureAwait(false);
+        var launchCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        lock (_gate) _launchCts = launchCts;
         try
         {
-            var p = _launchProfile;
-            await StopInternalAsync(force: false, ct).ConfigureAwait(false);
-            if (p is not null)
+            await _launchLock.WaitAsync(ct).ConfigureAwait(false);
+            try
             {
-                _crashCount = 0;
-                await LaunchInternalAsync(p, ct).ConfigureAwait(false);
+                var p = _launchProfile;
+                await StopInternalAsync(force: false, ct).ConfigureAwait(false);
+                if (p is not null)
+                {
+                    _crashCount = 0;
+                    await LaunchInternalAsync(p, launchCts.Token).ConfigureAwait(false);
+                }
             }
+            finally { _launchLock.Release(); }
         }
-        finally { _launchLock.Release(); }
+        finally { ClearLaunchCts(launchCts); }
     }
 
     public async Task RestartAsync(ServerProfile profile, CancellationToken ct = default)
     {
-        await _launchLock.WaitAsync(ct).ConfigureAwait(false);
+        var launchCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        lock (_gate) _launchCts = launchCts;
         try
         {
-            await StopInternalAsync(force: false, ct).ConfigureAwait(false);
-            _crashCount = 0;
-            await LaunchInternalAsync(profile, ct).ConfigureAwait(false);
+            await _launchLock.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                await StopInternalAsync(force: false, ct).ConfigureAwait(false);
+                _crashCount = 0;
+                await LaunchInternalAsync(profile, launchCts.Token).ConfigureAwait(false);
+            }
+            finally { _launchLock.Release(); }
         }
-        finally { _launchLock.Release(); }
+        finally { ClearLaunchCts(launchCts); }
+    }
+
+    /// <summary>Unpublishes and disposes a launch CTS. Cancel() always runs under _gate, and the field is
+    /// cleared under _gate before disposal, so a concurrent StopAsync can never cancel a disposed CTS.</summary>
+    private void ClearLaunchCts(CancellationTokenSource launchCts)
+    {
+        lock (_gate) { if (ReferenceEquals(_launchCts, launchCts)) _launchCts = null; }
+        launchCts.Dispose();
     }
 
     private async Task LaunchInternalAsync(ServerProfile profile, CancellationToken ct)
@@ -116,6 +152,7 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
         SetState(ServerState.Starting);
         try
         {
+            ct.ThrowIfCancellationRequested();
             var p = Clone(profile);
 
             // Deferred preset propagation (Phase 5/7): re-resolve preset-linked mods into the launch copy.
@@ -145,6 +182,10 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
 
             var progress = new Progress<string>(EmitLog);
             await _deploy.DeployModsAsync(p, progress, ct).ConfigureAwait(false);
+
+            // Last checkpoint before the process exists — a stop request past this point is handled by
+            // StopInternalAsync killing the started process instead.
+            ct.ThrowIfCancellationRequested();
 
             var profilesDir = Path.Combine(p.ServerDirectory, "profiles");
             Directory.CreateDirectory(profilesDir);
@@ -202,6 +243,17 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
             }
             if (running) StartLogTail(profilesDir, _startedAtUtc);
         }
+        catch (OperationCanceledException)
+        {
+            // A stop request (or caller cancellation) aborted the launch mid-flight. This is a user
+            // action, not a failure — resolve to Stopped quietly and let the pending StopAsync finish.
+            EmitLog("Launch aborted by stop request.");
+            Process? proc;
+            lock (_gate) proc = _process;
+            try { if (proc is { HasExited: false }) proc.Kill(entireProcessTree: true); }
+            catch { /* already gone */ }
+            SetState(ServerState.Stopped);
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Server launch failed.");
@@ -238,13 +290,18 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
                 // Clean stop: try an RCON "#shutdown" (short-lived dedicated client so it never disrupts the
                 // Console page's shared RCON session) AND a window close, then fall back to Kill on timeout.
                 // Both signals are sent because a server that connected to RCON may still ignore #shutdown.
-                await TryRconShutdownAsync(ct).ConfigureAwait(false);
-                try { proc.CloseMainWindow(); } catch { /* console app may ignore */ }
+                var rconSent = await TryRconShutdownAsync(ct).ConfigureAwait(false);
+                var windowClosed = false;
+                try { windowClosed = proc.CloseMainWindow(); } catch { /* console app may ignore */ }
 
-                var exited = await WaitForExitAsync(proc, TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
+                // If neither graceful signal landed (typical while the server is still booting — RCON is
+                // down and a console process has no main window), there is nothing to wait for: use a short
+                // grace instead of the full 30s so Stop stays responsive.
+                var grace = TimeSpan.FromSeconds(rconSent || windowClosed ? 30 : 5);
+                var exited = await WaitForExitAsync(proc, grace, ct).ConfigureAwait(false);
                 if (!exited)
                 {
-                    EmitLog("Graceful stop timed out after 30s; killing the process.");
+                    EmitLog($"Graceful stop timed out after {grace.TotalSeconds:0}s; killing the process.");
                     proc.Kill(entireProcessTree: true);
                 }
             }
@@ -381,19 +438,25 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
 
         if (_stopRequested) return;     // a manual stop arrived during the delay
 
-        await _launchLock.WaitAsync().ConfigureAwait(false);
+        var launchCts = new CancellationTokenSource();
+        lock (_gate) _launchCts = launchCts;
         try
         {
-            if (_stopRequested) return; // re-check after acquiring the gate
-            await LaunchInternalAsync(Clone(p), CancellationToken.None).ConfigureAwait(false);
+            await _launchLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                if (_stopRequested) return; // re-check after acquiring the gate
+                await LaunchInternalAsync(Clone(p), launchCts.Token).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Auto-restart failed.");
+                EmitLog($"Auto-restart failed: {ex.Message}");
+                SetState(ServerState.Crashed);
+            }
+            finally { _launchLock.Release(); }
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Auto-restart failed.");
-            EmitLog($"Auto-restart failed: {ex.Message}");
-            SetState(ServerState.Crashed);
-        }
-        finally { _launchLock.Release(); }
+        finally { ClearLaunchCts(launchCts); }
     }
 
     // ----- Resource sampling -----

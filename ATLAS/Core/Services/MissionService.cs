@@ -118,6 +118,9 @@ public sealed partial class MissionService : IMissionService
             .ToArray();
     }
 
+    public async Task<IReadOnlyList<string>> GetMissionDependenciesAsync(string missionPath, CancellationToken ct = default) =>
+        await Task.Run(() => (IReadOnlyList<string>)MissionSqmReader.ReadAddOns(missionPath), ct).ConfigureAwait(false);
+
     [GeneratedRegex("^[A-Za-z]+([0-9]+)")]
     private static partial Regex PrefixDigitsRegex();
 }

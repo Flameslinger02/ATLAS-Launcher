@@ -204,7 +204,11 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
         }
     }
 
-    [RelayCommand(CanExecute = nameof(IsRunning))]
+    // Stop must also be available while the launch is still in flight (config write / mod deploy /
+    // Arma boot) — StopAsync aborts an in-progress launch rather than queueing behind it.
+    private bool CanStop => ServerState is ServerState.Running or ServerState.Starting;
+
+    [RelayCommand(CanExecute = nameof(CanStop))]
     private async Task Stop()
     {
         try { StatusMessage = "Stopping server..."; await _server.StopAsync(false); }
@@ -218,10 +222,10 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
         catch (Exception ex) { await _dialogs.ShowErrorAsync("Restart failed", ex.Message); }
     }
 
-    /// <summary>Force-kill is available whenever a process exists to kill — both Running (hung server
-    /// escape hatch) and Stopping (graceful stop taking too long). Drives the button's CanExecute AND its
-    /// Visibility so the two never disagree.</summary>
-    public bool CanForceKill => IsRunning || IsStopping;
+    /// <summary>Force-kill is available whenever a launch or process is in flight — Starting (abort a
+    /// launch stuck in config/deploy), Running (hung server escape hatch) and Stopping (graceful stop
+    /// taking too long). Drives the button's CanExecute AND its Visibility so the two never disagree.</summary>
+    public bool CanForceKill => IsRunning || IsStopping || ServerState is ServerState.Starting;
 
     [RelayCommand(CanExecute = nameof(CanForceKill))]
     private async Task ForceKill()

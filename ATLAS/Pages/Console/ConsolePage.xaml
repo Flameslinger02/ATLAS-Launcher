@@ -1,6 +1,7 @@
 <UserControl x:Class="Atlas.Pages.Console.ConsolePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:Atlas.Core.Behaviors"
              Background="{DynamicResource Atlas.Brush.Background}">
     <UserControl.Resources>
         <Style x:Key="Tool" TargetType="Button" BasedOn="{StaticResource Atlas.Button.Secondary}">
@@ -97,7 +98,6 @@
                                 Command="{Binding ExportCommand}"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Clear"
                                 Command="{Binding ClearCommand}"/>
-                        <CheckBox DockPanel.Dock="Right" Content="Auto-scroll" IsChecked="{Binding AutoScroll}"/>
                         <CheckBox DockPanel.Dock="Right" Content="Pause" IsChecked="{Binding IsPaused}"/>
                         <TextBox Width="220" HorizontalAlignment="Left" VerticalContentAlignment="Center"
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
@@ -110,6 +110,7 @@
                             BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
                         <ListBox x:Name="AppLogList" ItemsSource="{Binding Entries}" Background="Transparent" BorderThickness="0"
                                  FontFamily="Consolas" FontSize="12"
+                                 b:AutoScrollBehavior.StickToBottom="True"
                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
@@ -146,6 +147,7 @@
                             BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
                         <ListBox x:Name="ServerRptList" ItemsSource="{Binding ServerRpt}" Background="Transparent" BorderThickness="0"
                                  FontFamily="Consolas" FontSize="12"
+                                 b:AutoScrollBehavior.StickToBottom="True"
                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
@@ -222,6 +224,7 @@
                             BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
                         <ListBox x:Name="ArmaOutputList" ItemsSource="{Binding ArmaOutput}" Background="Transparent" BorderThickness="0"
                                  FontFamily="Consolas" FontSize="12"
+                                 b:AutoScrollBehavior.StickToBottom="True"
                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">

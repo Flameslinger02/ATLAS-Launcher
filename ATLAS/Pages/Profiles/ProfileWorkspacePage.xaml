@@ -329,6 +329,8 @@
                                                 Command="{Binding ClearMissionQueueCommand}"/>
                                         <Button Content="Open Folder" Command="{Binding OpenMissionFolderCommand}"/>
                                         <Button Content="Rescan" Command="{Binding ReloadMissionsCommand}"/>
+                                        <Button Content="Dependencies" ToolTip="Show the selected mission's required addons (addOns[] from mission.sqm)"
+                                                Command="{Binding ShowMissionDependenciesCommand}"/>
                                     </WrapPanel>
                                     <TextBlock DockPanel.Dock="Bottom" Text="{Binding MissionStatus}" FontSize="11" Margin="0,8,0,0"
                                                Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
@@ -369,7 +371,9 @@
                                         <TextBlock Style="{StaticResource Lbl}" Text="Difficulty"/>
                                         <ComboBox Width="160" ItemsSource="{Binding DifficultyOptions}"
                                                   SelectedItem="{Binding Profile.MissionDifficulty}"/>
-                                        <CheckBox Content="Auto-init persistent mission" IsChecked="{Binding Profile.AutoInit}"/>
+                                        <CheckBox Content="Auto-init persistent mission" IsChecked="{Binding Profile.AutoInit}"
+                                                  ToolTipService.ShowDuration="20000"
+                                                  ToolTip="Initializes the mission on startup as if the first player joined (no player needed to start it). Forces persistent=1 (Arma skips autoInit without it — ATLAS sets it for you). The mission must use base or instant respawn (in its Description.ext) to keep running with 0 players connected. Note: autoInit disables mission Parameters — only default values are used."/>
                                         <CheckBox Content="Persistent" IsChecked="{Binding Profile.Persistent}"/>
                                         <CheckBox Content="Auto-select mission (skip mission list)" IsChecked="{Binding Profile.AutoSelectMission}"/>
                                         <CheckBox Content="Randomize mission order" IsChecked="{Binding Profile.RandomMissionOrder}"/>

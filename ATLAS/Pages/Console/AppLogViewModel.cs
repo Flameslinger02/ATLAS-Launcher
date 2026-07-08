@@ -26,7 +26,6 @@ public partial class AppLogViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private string _minLevel = "All";
     [ObservableProperty] private bool _isPaused;
-    [ObservableProperty] private bool _autoScroll = true;
     [ObservableProperty] private string _statusText = string.Empty;
 
     public string[] LevelOptions { get; } = { "All", "Debug", "Information", "Warning", "Error" };

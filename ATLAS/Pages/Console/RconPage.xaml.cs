@@ -1,4 +1,3 @@
-using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -6,7 +5,8 @@ using System.Windows.Media;
 
 namespace Atlas.Pages.Console;
 
-/// <summary>RCON management view; DI injects the view model and wires it as the DataContext.</summary>
+/// <summary>RCON management view; DI injects the view model and wires it as the DataContext.
+/// Console scrollback tailing is handled by <see cref="Core.Behaviors.AutoScrollBehavior"/>.</summary>
 public partial class RconPage : UserControl
 {
     private readonly RconViewModel _viewModel;
@@ -16,30 +16,6 @@ public partial class RconPage : UserControl
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
-
-        // The page is transient but the VM/collections are singletons, so subscribe only while loaded and
-        // detach on unload — otherwise each navigation would leak this page via the singleton's event.
-        Loaded += OnLoaded;
-        Unloaded += OnUnloaded;
-    }
-
-    private void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        _viewModel.ConsoleLog.CollectionChanged -= OnConsoleLogChanged;
-        _viewModel.ConsoleLog.CollectionChanged += OnConsoleLogChanged;
-    }
-
-    private void OnUnloaded(object sender, RoutedEventArgs e)
-    {
-        _viewModel.ConsoleLog.CollectionChanged -= OnConsoleLogChanged;
-    }
-
-    private void OnConsoleLogChanged(object? sender, NotifyCollectionChangedEventArgs e) => ScrollLast(ConsoleList, e);
-
-    private static void ScrollLast(ListBox list, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.Action != NotifyCollectionChangedAction.Add || list.Items.Count == 0) return;
-        list.ScrollIntoView(list.Items[^1]);
     }
 
     // ----- RCON command history (up/down) -----

@@ -20,4 +20,11 @@ public interface IMissionService
 
     /// <summary>Distinct, sorted <see cref="MissionInfo.FullPboName"/> values (for Discord autocomplete later).</summary>
     Task<string[]> GetAvailableMissionNamesAsync(string serverDirectory, string? missionFolderOverride = null);
+
+    /// <summary>
+    /// Reads the mission's required-addon list (<c>addOns[]</c> from <c>mission.sqm</c>).
+    /// <paramref name="missionPath"/> is either a packed <c>.pbo</c> file or an unpacked mission folder.
+    /// Throws <see cref="InvalidOperationException"/> with a user-readable message when unreadable.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetMissionDependenciesAsync(string missionPath, CancellationToken ct = default);
 }

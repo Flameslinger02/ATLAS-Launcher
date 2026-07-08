@@ -697,6 +697,41 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
             : $"Rotation ({names.Count}): " + string.Join(", ", names);
     }
 
+    partial void OnSelectedMissionChanged(MissionInfo? value) =>
+        ShowMissionDependenciesCommand.NotifyCanExecuteChanged();
+
+    private bool CanShowMissionDependencies => SelectedMission is not null;
+
+    /// <summary>Parses the selected mission's mission.sqm (packed or unpacked) and shows its required
+    /// addOns[] list in a small read-only window.</summary>
+    [RelayCommand(CanExecute = nameof(CanShowMissionDependencies))]
+    private async Task ShowMissionDependenciesAsync()
+    {
+        if (Profile is null || SelectedMission is null) return;
+
+        // Resolve the mission's on-disk path the same way OpenMissionFolder does: the override folder when
+        // set, else <ServerDirectory>\<SourceFolder> (MPMissions/Missions).
+        var dir = !string.IsNullOrWhiteSpace(Profile.MissionDirectory) && Directory.Exists(Profile.MissionDirectory)
+            ? Profile.MissionDirectory
+            : Path.Combine(Profile.ServerDirectory ?? string.Empty, SelectedMission.SourceFolder);
+        var path = Path.Combine(dir, SelectedMission.PboFileName);
+
+        try
+        {
+            var addOns = await _missions.GetMissionDependenciesAsync(path);
+            var window = new MissionDependenciesWindow(SelectedMission.FullPboName, addOns)
+            {
+                Owner = System.Windows.Application.Current?.MainWindow
+            };
+            window.Show();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to read mission dependencies from {Path}.", path);
+            await _dialogs.ShowErrorAsync("Dependencies", $"Could not read the mission's addOns list: {ex.Message}");
+        }
+    }
+
     [RelayCommand]
     private void OpenMissionFolder()
     {

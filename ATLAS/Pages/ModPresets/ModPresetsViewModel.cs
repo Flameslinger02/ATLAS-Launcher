@@ -15,6 +15,7 @@ public partial class ModPresetsViewModel : BaseViewModel
     private readonly IModPresetService _presets;
     private readonly IProfileService _profiles;
     private readonly IDialogService _dialogs;
+    private readonly IModLibraryService _library;
 
     public ObservableCollection<ModPreset> Presets { get; } = new();
     public ObservableCollection<ArmaModEntry> Mods { get; } = new();
@@ -22,11 +23,13 @@ public partial class ModPresetsViewModel : BaseViewModel
     [ObservableProperty] private ModPreset? _selectedPreset;
     [ObservableProperty] private ArmaModEntry? _selectedMod;
 
-    public ModPresetsViewModel(IModPresetService presets, IProfileService profiles, IDialogService dialogs)
+    public ModPresetsViewModel(
+        IModPresetService presets, IProfileService profiles, IDialogService dialogs, IModLibraryService library)
     {
         _presets = presets;
         _profiles = profiles;
         _dialogs = dialogs;
+        _library = library;
         Title = "Mod Presets";
         _ = LoadAsync();
     }
@@ -153,6 +156,59 @@ public partial class ModPresetsViewModel : BaseViewModel
         await LoadAsync();
         SelectedPreset = Presets.FirstOrDefault(p => p.Id == created.Id);
     }
+
+    /// <summary>Adds mods the library already knows about — no re-pasting Workshop IDs. Opens a
+    /// multi-select picker over every library mod not yet in the preset.</summary>
+    [RelayCommand]
+    private async Task AddFromLibrary()
+    {
+        if (SelectedPreset is null) return;
+
+        List<ArmaModEntry> library;
+        try { library = await _library.GetAllModsAsync(); }
+        catch (Exception ex)
+        {
+            await _dialogs.ShowErrorAsync("Add from Library", $"Could not load the mod library: {ex.Message}");
+            return;
+        }
+
+        var present = new HashSet<string>(Mods.Select(ModKey), StringComparer.OrdinalIgnoreCase);
+        var candidates = library.Where(m => !present.Contains(ModKey(m))).ToList();
+        if (candidates.Count == 0)
+        {
+            await _dialogs.ShowInfoAsync("Add from Library",
+                "Every library mod is already in this preset (or the library is empty — add mods on the Library tab).");
+            return;
+        }
+
+        var picker = new Mods.LibraryModPickerWindow(candidates)
+        {
+            Owner = System.Windows.Application.Current?.MainWindow
+        };
+        if (picker.ShowDialog() != true) return;
+
+        foreach (var mod in picker.SelectedMods)
+        {
+            // Copy the library row into a preset assignment (fresh per-assignment settings + load order).
+            Mods.Add(new ArmaModEntry
+            {
+                ModId = mod.ModId,
+                WorkshopId = mod.WorkshopId,
+                Name = mod.Name,
+                FolderName = mod.FolderName,
+                LocalPath = mod.LocalPath,
+                IsLocal = mod.IsLocal,
+                Version = mod.Version,
+                LoadOrder = Mods.Count,
+            });
+        }
+    }
+
+    /// <summary>Same mod-identity rule as the profile Mods tab: Workshop id, else folder name, else name.</summary>
+    private static string ModKey(ArmaModEntry m) =>
+        m.WorkshopId != 0 ? "w:" + m.WorkshopId
+        : !string.IsNullOrWhiteSpace(m.FolderName) ? "f:" + m.FolderName.ToLowerInvariant()
+        : "n:" + m.Name.ToLowerInvariant();
 
     [RelayCommand]
     private async Task AddByWorkshop()
