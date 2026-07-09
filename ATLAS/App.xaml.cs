@@ -97,6 +97,15 @@ public partial class App : Application
             var defaultProfile = await profiles.GetDefaultProfileAsync();
             if (defaultProfile is not null) profiles.SetActiveProfile(defaultProfile);
 
+            // If a server from a previous session is still running (ATLAS leaves it alive on exit),
+            // re-adopt it now — before any window or hosted service — so its Running state, uptime,
+            // Stop/Force-kill, RPT tail and crash detection are all restored on this launch.
+            if (profiles.ActiveProfile is { } activeProfile)
+            {
+                try { _host.Services.GetRequiredService<IServerProcessService>().TryAdoptRunningServer(activeProfile); }
+                catch (Exception ex) { Log.Warning(ex, "Re-attach to a running server failed at startup."); }
+            }
+
             await _host.StartAsync();
 
             Log.Information("{App} {Version} started.", AppConstants.AppName,

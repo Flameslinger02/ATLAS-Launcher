@@ -2,6 +2,34 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.4.0] — 2026-07-08
+
+### Added
+- **Re-attach to a running server** — if you close ATLAS while a server is still running, ATLAS finds
+  that server again when you reopen it (and its profile is active) and picks up where it left off:
+  live status, uptime, Stop/Restart/Force-kill, the RPT log tail and crash detection all work again.
+  Performance history starts fresh. This also works across a higher-privilege server started as
+  administrator.
+
+### Changed
+- **Dashboard layout** — the uptime/players/CPU/memory/crashes tiles now sit in a compact column on the
+  left with the performance graphs beside them, and the server log / headless-client panels get more
+  room; the whole top area is height-capped so everything stays visible without maximising the window.
+- **Performance graphs** — the rolling window is now 5 minutes with a fixed time axis (1m–5m) and
+  round-value Y ticks, and the graphs are always shown (drawing an empty grid when the server is
+  stopped) instead of appearing only while running.
+- **Mods Library grid** — column widths and resizing now match the Presets grid (drag a divider and the
+  neighbours give way; columns keep their width).
+
+### Fixed
+- **RPT analyzer no longer cries wolf on missing addons** — the "you cannot play/edit this mission…"
+  / "requires addon" warning is a common, usually-harmless engine message (often from stale entries in
+  a mission's `mission.sqm`, especially for vanilla `a3_*` content) and is now reported as a Warning
+  with clearer guidance, not a Critical. A true "Cannot load mission" is still flagged Critical.
+- **Unreadable text in some pop-up windows** — the Mission Dependencies, Add-from-Library, RPT Analysis
+  and Headless-Client-Log windows now use the app theme's text colour, so their text is readable in the
+  dark theme (previously some controls rendered black-on-dark).
+
 ## [0.3.15] — 2026-07-08
 
 ### Changed

@@ -5,6 +5,7 @@
         Width="820" Height="520"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource Atlas.Brush.Background}"
+        TextElement.Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
         Title="Headless Client Log">
     <DockPanel Margin="12">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">

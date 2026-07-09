@@ -89,13 +89,15 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="*" MinWidth="160"/>
-                            <DataGridTextColumn Header="Workshop ID" Binding="{Binding WorkshopIdText}" IsReadOnly="True" Width="110" MinWidth="88"/>
-                            <DataGridTextColumn Header="Version" Binding="{Binding Version}" IsReadOnly="True" Width="72" MinWidth="56"/>
+                            <!-- Fixed-pixel widths + MinWidth, matching the Presets grid — the standard
+                                 resize feel (drag a divider, neighbours give way; columns keep their width). -->
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="240" MinWidth="160"/>
+                            <DataGridTextColumn Header="Workshop ID" Binding="{Binding WorkshopIdText}" IsReadOnly="True" Width="120" MinWidth="88"/>
+                            <DataGridTextColumn Header="Version" Binding="{Binding Version}" IsReadOnly="True" Width="80" MinWidth="56"/>
                             <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" IsReadOnly="True" Width="80" MinWidth="60"/>
-                            <DataGridTextColumn Header="Updated" Binding="{Binding LastUpdatedText}" IsReadOnly="True" Width="95" MinWidth="80"/>
+                            <DataGridTextColumn Header="Updated" Binding="{Binding LastUpdatedText}" IsReadOnly="True" Width="100" MinWidth="80"/>
                             <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True" Width="120" MinWidth="90"/>
-                            <DataGridTextColumn Header="Used by" Binding="{Binding UsedBy}" IsReadOnly="True" Width="160" MinWidth="100"/>
+                            <DataGridTextColumn Header="Used by" Binding="{Binding UsedBy}" IsReadOnly="True" Width="180" MinWidth="100"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Border>

@@ -43,8 +43,8 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private int _crashCount;
     [ObservableProperty] private string _steamStatusText = "Steam layer: —";
 
-    // Rolling performance history (1 sample/sec, 30 min window). Exposed as snapshots the sparkline binds to.
-    private const int HistoryCapacity = 1800;
+    // Rolling performance history (1 sample/sec, 5 min window). Exposed as snapshots the sparkline binds to.
+    private const int HistoryCapacity = 300;
     private readonly Queue<double> _cpuHistory = new();
     private readonly Queue<double> _memHistory = new();
     private readonly Queue<double> _playerHistory = new();
@@ -87,6 +87,7 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
         ApplyActiveProfile(_profiles.ActiveProfile);
         ApplyServerState(_server.CurrentState);
         RconState = _rcon.State;
+        TryReattach();   // adopt a server left running from a previous session (if the profile is already active)
 
         _subs.Add(_server.StateChanged.Subscribe(s => OnUi(() => ApplyServerState(s))));
         _subs.Add(_server.LogOutput.Subscribe(line => OnUi(() => AppendLog(line))));
@@ -106,7 +107,24 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     // ----- State / profile plumbing -----
 
     private void OnActiveProfileChanged(object? sender, ServerProfile profile) =>
-        OnUi(() => ApplyActiveProfile(profile));
+        OnUi(() => { ApplyActiveProfile(profile); TryReattach(); });
+
+    /// <summary>If a dedicated server from a previous session is still running, adopt it for the active
+    /// profile so Stop/Force-kill, uptime, the RPT tail and crash detection are restored. No-ops if a
+    /// server is already tracked/running or nothing matching is found. Runs when the profile is set or
+    /// changes, because at app startup the active profile may not be known yet (no DB default).</summary>
+    private void TryReattach()
+    {
+        var p = _profiles.ActiveProfile;
+        if (p is null) return;
+        if (ServerState is ServerState.Running or ServerState.Starting or ServerState.Stopping) return;
+        try
+        {
+            if (_server.TryAdoptRunningServer(p))
+                StatusMessage = "Re-attached to a server still running from a previous session.";
+        }
+        catch (Exception ex) { Log.Warning(ex, "Re-attach attempt failed."); }
+    }
 
     private void ApplyActiveProfile(ServerProfile? p)
     {

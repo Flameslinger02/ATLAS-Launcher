@@ -89,79 +89,86 @@
             </Grid>
         </Border>
 
-        <!-- Stats row -->
-        <UniformGrid DockPanel.Dock="Top" Rows="1" Columns="5" Margin="0,12,0,0">
-            <Border Style="{StaticResource Card}" Margin="0,0,6,0">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource StatLabel}" Text="UPTIME"/>
-                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding UptimeText}"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource Card}" Margin="6,0">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource StatLabel}" Text="PLAYERS"/>
-                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding PlayerCount}"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource Card}" Margin="6,0">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource StatLabel}" Text="CPU"/>
-                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding CpuText}"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource Card}" Margin="6,0">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource StatLabel}" Text="MEMORY"/>
-                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding MemoryText}"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource Card}" Margin="6,0,0,0">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource StatLabel}" Text="CRASHES"/>
-                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding CrashCount}"/>
-                </StackPanel>
-            </Border>
-        </UniformGrid>
+        <!-- Stats column (left) + performance history (right, 5 min). Height-capped so the RPT log and
+             headless-client panels below stay visible without maximising the window. -->
+        <Grid DockPanel.Dock="Top" Margin="0,12,0,0" Height="210">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- Performance history (30 min) -->
-        <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,12,0,0"
-                Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}">
-            <StackPanel>
-                <TextBlock Text="PERFORMANCE (LAST 30 MIN)" Style="{StaticResource Hdr}" Margin="0,0,0,8"/>
-                <UniformGrid Rows="1" Columns="3">
-                    <StackPanel Margin="0,0,8,0">
-                        <DockPanel Margin="0,0,0,2">
-                            <TextBlock Text="CPU" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="{Binding CpuText}" HorizontalAlignment="Right" FontSize="11"
-                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
-                        </DockPanel>
-                        <ctl:SparklineChart Height="64" PointsSource="{Binding CpuSeries}" Minimum="0" Maximum="100"
-                                            LineBrush="#4F9DDE" ShowAxes="True" ValueSuffix="%"
-                                            AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <UniformGrid Grid.Column="0" Rows="5" Columns="1">
+                <Border Style="{StaticResource Card}" Padding="10,2" Margin="0,0,0,3">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource StatLabel}" Text="UPTIME"/>
+                        <TextBlock Style="{StaticResource StatValue}" FontSize="16" Margin="0" Text="{Binding UptimeText}"/>
                     </StackPanel>
-                    <StackPanel Margin="4,0">
-                        <DockPanel Margin="0,0,0,2">
-                            <TextBlock Text="MEMORY" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="{Binding MemPeakText}" HorizontalAlignment="Right" FontSize="11"
-                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
-                        </DockPanel>
-                        <ctl:SparklineChart Height="64" PointsSource="{Binding MemSeries}" LineBrush="#5FB878"
-                                            ShowAxes="True" ValueSuffix=" MB"
-                                            AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                </Border>
+                <Border Style="{StaticResource Card}" Padding="10,2" Margin="0,0,0,3">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource StatLabel}" Text="PLAYERS"/>
+                        <TextBlock Style="{StaticResource StatValue}" FontSize="16" Margin="0" Text="{Binding PlayerCount}"/>
                     </StackPanel>
-                    <StackPanel Margin="8,0,0,0">
-                        <DockPanel Margin="0,0,0,2">
-                            <TextBlock Text="PLAYERS" Style="{StaticResource StatLabel}"/>
-                            <TextBlock Text="{Binding PlayerCount}" HorizontalAlignment="Right" FontSize="11"
-                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
-                        </DockPanel>
-                        <ctl:SparklineChart Height="64" PointsSource="{Binding PlayerSeries}" Minimum="0"
-                                            LineBrush="#C08457" ShowAxes="True"
-                                            AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                </Border>
+                <Border Style="{StaticResource Card}" Padding="10,2" Margin="0,0,0,3">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource StatLabel}" Text="CPU"/>
+                        <TextBlock Style="{StaticResource StatValue}" FontSize="16" Margin="0" Text="{Binding CpuText}"/>
                     </StackPanel>
-                </UniformGrid>
-            </StackPanel>
-        </Border>
+                </Border>
+                <Border Style="{StaticResource Card}" Padding="10,2" Margin="0,0,0,3">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource StatLabel}" Text="MEMORY"/>
+                        <TextBlock Style="{StaticResource StatValue}" FontSize="16" Margin="0" Text="{Binding MemoryText}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Padding="10,2">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource StatLabel}" Text="CRASHES"/>
+                        <TextBlock Style="{StaticResource StatValue}" FontSize="16" Margin="0" Text="{Binding CrashCount}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="12,0,0,0" Padding="14,10">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="PERFORMANCE (LAST 5 MIN)"
+                               Style="{StaticResource Hdr}" Margin="0,0,0,6"/>
+                    <UniformGrid Rows="1" Columns="3">
+                        <DockPanel Margin="0,0,8,0">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                                <TextBlock Text="CPU" Style="{StaticResource StatLabel}"/>
+                                <TextBlock Text="{Binding CpuText}" HorizontalAlignment="Right" FontSize="11"
+                                           Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                            </DockPanel>
+                            <ctl:SparklineChart PointsSource="{Binding CpuSeries}" Minimum="0" Maximum="100"
+                                                LineBrush="#4F9DDE" ShowAxes="True" ValueSuffix="%" WindowSeconds="300"
+                                                AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </DockPanel>
+                        <DockPanel Margin="4,0">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                                <TextBlock Text="MEMORY" Style="{StaticResource StatLabel}"/>
+                                <TextBlock Text="{Binding MemPeakText}" HorizontalAlignment="Right" FontSize="11"
+                                           Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                            </DockPanel>
+                            <ctl:SparklineChart PointsSource="{Binding MemSeries}" LineBrush="#5FB878"
+                                                ShowAxes="True" ValueSuffix=" MB" WindowSeconds="300"
+                                                AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </DockPanel>
+                        <DockPanel Margin="8,0,0,0">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                                <TextBlock Text="PLAYERS" Style="{StaticResource StatLabel}"/>
+                                <TextBlock Text="{Binding PlayerCount}" HorizontalAlignment="Right" FontSize="11"
+                                           Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                            </DockPanel>
+                            <ctl:SparklineChart PointsSource="{Binding PlayerSeries}" Minimum="0"
+                                                LineBrush="#C08457" ShowAxes="True" WindowSeconds="300"
+                                                AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </DockPanel>
+                    </UniformGrid>
+                </DockPanel>
+            </Border>
+        </Grid>
 
         <!-- Quick actions (RCON) -->
         <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="12,10" Margin="0,12,0,0">
@@ -228,8 +235,8 @@
         <!-- Main: log tail + headless-client panel -->
         <Grid Margin="0,12,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="320"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*" MinWidth="280"/>
             </Grid.ColumnDefinitions>
 
             <!-- Log tail -->

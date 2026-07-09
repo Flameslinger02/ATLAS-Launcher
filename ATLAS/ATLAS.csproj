@@ -8,9 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ATLAS</AssemblyName>
     <RootNamespace>Atlas</RootNamespace>
-    <AssemblyVersion>0.3.15.0</AssemblyVersion>
-    <FileVersion>0.3.15.0</FileVersion>
-    <Version>0.3.15</Version>
+    <AssemblyVersion>0.4.0.0</AssemblyVersion>
+    <FileVersion>0.4.0.0</FileVersion>
+    <Version>0.4.0</Version>
 
     <ApplicationIcon>Resources\atlas_icon.ico</ApplicationIcon>
 

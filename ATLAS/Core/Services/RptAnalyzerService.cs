@@ -40,9 +40,6 @@ public sealed class RptAnalyzerService : IRptAnalyzerService
     private static readonly RptRule[] Rules =
     {
         // --- Critical: broken content / crashes ---
-        new("Missing required addon", "Mods & Addons", RptSeverity.Critical,
-            Rx(@"requires addon|Missing addons detected|You cannot play/edit this mission"),
-            "The mission or a mod depends on an addon that is not loaded. Add the missing mod to the profile (check the mission's Dependencies list on the Missions tab) or remove the dependent content."),
         new("Mission failed to load", "Missions", RptSeverity.Critical,
             Rx(@"Cannot load mission|Missing description\.ext|Invalid mission format"),
             "The mission file is missing, corrupt, or incompatible. Re-export the mission or check the template name in server.cfg matches the file in MPMissions."),
@@ -54,6 +51,12 @@ public sealed class RptAnalyzerService : IRptAnalyzerService
             "BattlEye could not start — clients with BE enabled cannot join. Verify the BEServer_x64.cfg exists and the server has internet access to update BE, or disable BattlEye on the profile."),
 
         // --- Warnings: degraded behaviour ---
+        // "cannot play/edit this mission" is a notorious false positive: mission.sqm addOns[] often
+        // carries stale entries (vanilla a3_* names especially — a known BI cfgPatches quirk) and the
+        // mission loads and runs fine anyway. Only a "Cannot load mission" line means it truly failed.
+        new("Mission dependency warning", "Mods & Addons", RptSeverity.Warning,
+            Rx(@"requires addon|Missing addons detected|You cannot play/edit this mission"),
+            "The mission lists addons that are not loaded. This is very often harmless — missions edited with extra mods (or naming vanilla a3_* content) carry stale entries in mission.sqm and still run fine. It only matters if the mission actually failed to start: check for a 'Mission failed to load' finding. If a real mod is missing, add it to the profile (the Missions tab's Dependencies list shows what the mission asks for)."),
         new("Signature / key problem", "Signatures", RptSeverity.Warning,
             Rx(@"Wrong signature for file|Signature check timed out|unsigned file|invalid key"),
             "A client (or the server) has files that fail signature verification. Make sure every mod's .bikey is deployed to the Keys folder (Mods → Deploy handles this) and clients run the same mod versions."),

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reactive.Subjects;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Atlas.Core.Models;
@@ -459,6 +460,102 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
         finally { ClearLaunchCts(launchCts); }
     }
 
+    // ----- Re-attach to a server left running after an ATLAS restart -----
+
+    public bool TryAdoptRunningServer(ServerProfile profile)
+    {
+        lock (_gate) { if (_process is not null) return false; }
+        if (string.IsNullOrWhiteSpace(profile.ServerDirectory) || !Directory.Exists(profile.ServerDirectory))
+            return false;
+
+        string exe, serverDir;
+        try
+        {
+            exe = Path.GetFullPath(ResolveExe(profile));
+            serverDir = Path.GetFullPath(profile.ServerDirectory);
+        }
+        catch { return false; }
+
+        // Match by the running process's on-disk executable: exact exe, or any arma3server under this
+        // profile's server directory. Names cover the standard, profiling and legacy dedicated exes.
+        var serverDirPrefix = serverDir.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var candidates = 0;
+        Process? match = null;
+        foreach (var name in new[] { "arma3server_x64", "arma3server_profiling_x64", "arma3server" })
+        {
+            foreach (var proc in Process.GetProcessesByName(name))
+            {
+                candidates++;
+                var keep = false;
+                try
+                {
+                    var path = TryGetProcessImagePath(proc);
+                    if (path is not null)
+                    {
+                        var full = Path.GetFullPath(path);
+                        if (string.Equals(full, exe, StringComparison.OrdinalIgnoreCase) ||
+                            full.StartsWith(serverDirPrefix, StringComparison.OrdinalIgnoreCase))
+                        {
+                            match = proc;
+                            keep = true;
+                        }
+                        else
+                            Log.Debug("Re-attach: process {Pid} at {Path} is not under {Dir}.", proc.Id, full, serverDir);
+                    }
+                    else
+                        Log.Debug("Re-attach: could not read the image path of process {Pid} ({Name}).", proc.Id, name);
+                }
+                catch (Exception ex) { Log.Debug(ex, "Re-attach: error inspecting process {Pid}.", proc.Id); }
+                if (!keep) proc.Dispose();
+                if (match is not null) break;
+            }
+            if (match is not null) break;
+        }
+        if (match is null)
+        {
+            Log.Information("Re-attach: no running dedicated-server process matched {Exe} (dir {Dir}); {Count} candidate(s) seen.",
+                exe, serverDir, candidates);
+            return false;
+        }
+
+        try
+        {
+            DateTime startUtc;
+            try { startUtc = match.StartTime.ToUniversalTime(); }
+            catch { startUtc = DateTime.UtcNow; }
+
+            match.EnableRaisingEvents = true;
+            match.Exited += (_, _) => OnProcessExited(match);
+
+            lock (_gate)
+            {
+                if (_process is not null) { match.Dispose(); return false; }
+                if (match.HasExited) { match.Dispose(); return false; }
+                _process = match;
+                _launchProfile = Clone(profile);
+                _startedAtUtc = startUtc;
+                _lastCpuSampleUtc = default;
+                _lastCpu = default;
+                _crashCount = 0;
+                _stopRequested = false;
+                SetState(ServerState.Running);
+            }
+
+            EmitLog($"Re-attached to a server left running (PID {match.Id}, started {startUtc.ToLocalTime():HH:mm:ss}). " +
+                    "Performance history starts fresh.");
+            // Seek to the end of the RPT so we tail only new lines rather than replaying the whole session.
+            StartLogTail(Path.Combine(profile.ServerDirectory, "profiles"), startUtc, seekToEnd: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to adopt a running server process.");
+            try { match.Dispose(); } catch { /* ignore */ }
+            lock (_gate) { if (ReferenceEquals(_process, match)) _process = null; }
+            return false;
+        }
+    }
+
     // ----- Resource sampling -----
 
     public (double CpuPercent, long MemoryBytes) GetResourceUsage()
@@ -493,12 +590,12 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
 
     // ----- RPT log tail -----
 
-    private void StartLogTail(string profilesDir, DateTime startUtc)
+    private void StartLogTail(string profilesDir, DateTime startUtc, bool seekToEnd = false)
     {
         var cts = new CancellationTokenSource();
         var old = Interlocked.Exchange(ref _tailCts, cts);
         try { old?.Cancel(); old?.Dispose(); } catch { /* ignore */ }
-        _ = Task.Run(() => TailRptAsync(profilesDir, startUtc, cts.Token));
+        _ = Task.Run(() => TailRptAsync(profilesDir, startUtc, seekToEnd, cts.Token));
     }
 
     private void StopLogTail()
@@ -507,7 +604,7 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
         try { old?.Cancel(); old?.Dispose(); } catch { /* ignore */ }
     }
 
-    private async Task TailRptAsync(string dir, DateTime startUtc, CancellationToken ct)
+    private async Task TailRptAsync(string dir, DateTime startUtc, bool seekToEnd, CancellationToken ct)
     {
         string? rpt = null;
         for (var i = 0; i < 60 && !ct.IsCancellationRequested && rpt is null; i++)
@@ -539,6 +636,13 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
         {
             await using var fs = new FileStream(rpt, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new StreamReader(fs);
+
+            // When adopting an already-running server, skip the historical log and tail only new lines.
+            if (seekToEnd)
+            {
+                fs.Seek(0, SeekOrigin.End);
+                reader.DiscardBufferedData();
+            }
 
             // Buffer any trailing partial line (no newline yet, because the server is mid-write) and only
             // emit complete, newline-terminated lines so a single log line is never split across entries.
@@ -579,6 +683,38 @@ public sealed class ServerProcessService : IServerProcessService, IDisposable
     private void SetState(ServerState s) => _state.OnNext(s);
 
     private void EmitLog(string message) => _log.OnNext(message);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(int access, bool inheritHandle, int processId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool QueryFullProcessImageNameW(IntPtr handle, int flags, StringBuilder buffer, ref int size);
+
+    private const int PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    /// <summary>Resolves a process's executable path. <see cref="Process.MainModule"/> throws
+    /// "Access is denied" when the target runs at a higher integrity level than ATLAS (e.g. the server was
+    /// started as administrator). A PROCESS_QUERY_LIMITED_INFORMATION handle + QueryFullProcessImageName
+    /// works across integrity levels, so we try that first and fall back to MainModule.</summary>
+    private static string? TryGetProcessImagePath(Process proc)
+    {
+        var handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, proc.Id);
+        if (handle != IntPtr.Zero)
+        {
+            try
+            {
+                var sb = new StringBuilder(1024);
+                var size = sb.Capacity;
+                if (QueryFullProcessImageNameW(handle, 0, sb, ref size) && size > 0)
+                    return sb.ToString(0, size);
+            }
+            finally { CloseHandle(handle); }
+        }
+        try { return proc.MainModule?.FileName; } catch { return null; }
+    }
 
     private static string ResolveExe(ServerProfile p)
     {

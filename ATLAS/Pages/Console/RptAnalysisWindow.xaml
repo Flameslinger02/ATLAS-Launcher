@@ -4,6 +4,7 @@
         Width="720" Height="620"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource Atlas.Brush.Background}"
+        TextElement.Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
         Title="RPT Analysis">
     <DockPanel Margin="12">
         <TextBlock x:Name="HeaderText" DockPanel.Dock="Top" FontWeight="SemiBold" TextWrapping="Wrap"

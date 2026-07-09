@@ -51,4 +51,13 @@ public interface IServerProcessService
 
     /// <summary>Samples CPU usage (% across all cores, since the previous call) and working-set bytes.</summary>
     (double CpuPercent, long MemoryBytes) GetResourceUsage();
+
+    /// <summary>
+    /// If ATLAS was closed while a server was still running, re-attaches to that live process on the next
+    /// launch: finds a running <c>arma3server</c> whose executable belongs to <paramref name="profile"/>'s
+    /// server directory and adopts it as the managed process — restoring Stop/Force-kill, uptime (from the
+    /// process start time), the RPT tail and crash detection. Performance history starts fresh. No-ops and
+    /// returns false if a process is already tracked or no matching server is found.
+    /// </summary>
+    bool TryAdoptRunningServer(ServerProfile profile);
 }
