@@ -24,7 +24,11 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     private readonly IProfileService _profiles;
     private readonly INavigationService _nav;
     private readonly IDialogService _dialogs;
+    private readonly IMissionDependencyChecker _depChecker;
+    private readonly ISteamQueryService _steamQuery;
     private readonly DispatcherTimer _timer;
+    private int _steamTick;                 // seconds since the last A2S visibility poll
+    private bool _steamQueryBusy;
     private readonly List<IDisposable> _subs = new();
     private const int MaxLogLines = 300;
 
@@ -37,6 +41,17 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _cpuText = "0 %";
     [ObservableProperty] private string _memoryText = "0 MB";
     [ObservableProperty] private int _crashCount;
+    [ObservableProperty] private string _steamStatusText = "Steam query: —";
+
+    // Rolling performance history (1 sample/sec, 30 min window). Exposed as snapshots the sparkline binds to.
+    private const int HistoryCapacity = 1800;
+    private readonly Queue<double> _cpuHistory = new();
+    private readonly Queue<double> _memHistory = new();
+    private readonly Queue<double> _playerHistory = new();
+    [ObservableProperty] private IReadOnlyList<double> _cpuSeries = Array.Empty<double>();
+    [ObservableProperty] private IReadOnlyList<double> _memSeries = Array.Empty<double>();
+    [ObservableProperty] private IReadOnlyList<double> _playerSeries = Array.Empty<double>();
+    [ObservableProperty] private string _memPeakText = "0 MB";
     [ObservableProperty] private string _statusMessage = "Ready";
 
     // Quick actions (RCON, shared singleton client with the Console page).
@@ -56,7 +71,8 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
 
     public DashboardViewModel(
         IServerProcessService server, IHeadlessClientService hc, IBattlEyeRconClient rcon,
-        IProfileService profiles, INavigationService nav, IDialogService dialogs)
+        IProfileService profiles, INavigationService nav, IDialogService dialogs,
+        IMissionDependencyChecker depChecker, ISteamQueryService steamQuery)
     {
         _server = server;
         _hc = hc;
@@ -64,6 +80,8 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
         _profiles = profiles;
         _nav = nav;
         _dialogs = dialogs;
+        _depChecker = depChecker;
+        _steamQuery = steamQuery;
         Title = "Dashboard";
 
         ApplyActiveProfile(_profiles.ActiveProfile);
@@ -158,15 +176,65 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
             var up = _server.Uptime;
             UptimeText = $"{(int)up.TotalHours:00}:{up.Minutes:00}:{up.Seconds:00}";
             var (cpu, mem) = _server.GetResourceUsage();
+            var memMb = mem / (1024.0 * 1024.0);
             CpuText = $"{cpu:0} %";
-            MemoryText = $"{mem / (1024.0 * 1024.0):0} MB";
+            MemoryText = $"{memMb:0} MB";
+            AppendHistory(cpu, memMb, PlayerCount);
+
+            // Poll Steam visibility every 30s (first check ~10s in, giving the Steam layer time to bind).
+            if (++_steamTick >= 30) { _steamTick = 0; _ = RefreshSteamStatusAsync(); }
         }
         else
         {
             UptimeText = "00:00:00";
             CpuText = "0 %";
             MemoryText = "0 MB";
+            _steamTick = 20;
+            SteamStatusText = "Steam query: —";
+            if (_cpuHistory.Count > 0) ClearHistory();
         }
+    }
+
+    private void AppendHistory(double cpu, double memMb, int players)
+    {
+        Push(_cpuHistory, cpu);
+        Push(_memHistory, memMb);
+        Push(_playerHistory, players);
+        CpuSeries = _cpuHistory.ToArray();
+        MemSeries = _memHistory.ToArray();
+        PlayerSeries = _playerHistory.ToArray();
+        MemPeakText = _memHistory.Count > 0 ? $"{_memHistory.Max():0} MB peak" : "0 MB";
+
+        static void Push(Queue<double> q, double v) { q.Enqueue(v); while (q.Count > HistoryCapacity) q.Dequeue(); }
+    }
+
+    private void ClearHistory()
+    {
+        _cpuHistory.Clear(); _memHistory.Clear(); _playerHistory.Clear();
+        CpuSeries = Array.Empty<double>();
+        MemSeries = Array.Empty<double>();
+        PlayerSeries = Array.Empty<double>();
+        MemPeakText = "0 MB";
+    }
+
+    /// <summary>A2S_INFO against the local query port (game port + 1) — proves the server's Steam layer
+    /// is up and answering browser queries, independent of RCON.</summary>
+    [RelayCommand]
+    private async Task RefreshSteamStatusAsync()
+    {
+        if (_steamQueryBusy) return;
+        var p = _profiles.ActiveProfile;
+        if (p is null || !IsRunning) { SteamStatusText = "Steam query: —"; return; }
+
+        _steamQueryBusy = true;
+        try
+        {
+            var info = await _steamQuery.QueryInfoAsync("127.0.0.1", p.Port + 1, TimeSpan.FromSeconds(2));
+            SteamStatusText = info is null
+                ? "Steam query: no answer (server may still be booting)"
+                : $"Steam query: visible — {info.Players}/{info.MaxPlayers} on {info.Map}{(info.PasswordProtected ? " (passworded)" : "")}";
+        }
+        finally { _steamQueryBusy = false; }
     }
 
     private void AppendLog(string line)
@@ -191,6 +259,7 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     {
         var p = _profiles.ActiveProfile;
         if (p is null) { await _dialogs.ShowErrorAsync("No active profile", "Activate a profile first."); return; }
+        if (!await MissionDependencyGate.ConfirmAsync(_depChecker, _dialogs, p)) return;
         try
         {
             StatusMessage = "Launching server...";

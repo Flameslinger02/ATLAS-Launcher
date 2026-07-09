@@ -139,6 +139,9 @@
                                 Command="{Binding SaveRptCommand}"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Clear"
                                 Command="{Binding ClearServerRptCommand}"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" Content="Analyze"
+                                Command="{Binding AnalyzeRptCommand}"
+                                ToolTip="Scan the newest RPT log on disk for known errors (missing addons, signature kicks, script errors, crashes) with guidance"/>
                         <TextBlock Text="Live tail of the running server's .rpt log."
                                    VerticalAlignment="Center"
                                    Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>

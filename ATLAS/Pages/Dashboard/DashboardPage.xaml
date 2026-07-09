@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:b="clr-namespace:Atlas.Core.Behaviors"
+             xmlns:ctl="clr-namespace:Atlas.Controls"
              Background="{DynamicResource Atlas.Brush.Background}">
     <UserControl.Resources>
         <Style x:Key="Card" TargetType="Border">
@@ -66,6 +67,12 @@
                         <Run Text="  •  "/>
                         <Run Text="{Binding ActiveProfileName, Mode=OneWay}"/>
                     </TextBlock>
+                    <TextBlock Foreground="{DynamicResource Atlas.Brush.TextSecondary}" FontSize="11" Margin="0,2,0,0"
+                               ToolTip="Live A2S query against the server's Steam query port (game port + 1). Answers here mean the Steam browser layer is up; checking your public IP from inside the LAN can false-negative even when port forwarding works (NAT hairpin).">
+                        <Hyperlink Command="{Binding RefreshSteamStatusCommand}" TextDecorations="None">
+                            <Run Text="{Binding SteamStatusText, Mode=OneWay}"/>
+                        </Hyperlink>
+                    </TextBlock>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -115,6 +122,42 @@
                 </StackPanel>
             </Border>
         </UniformGrid>
+
+        <!-- Performance history (30 min) -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,12,0,0"
+                Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="PERFORMANCE (LAST 30 MIN)" Style="{StaticResource Hdr}" Margin="0,0,0,8"/>
+                <UniformGrid Rows="1" Columns="3">
+                    <StackPanel Margin="0,0,8,0">
+                        <DockPanel Margin="0,0,0,2">
+                            <TextBlock Text="CPU" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="{Binding CpuText}" HorizontalAlignment="Right" FontSize="11"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </DockPanel>
+                        <ctl:SparklineChart Height="48" PointsSource="{Binding CpuSeries}" Minimum="0" Maximum="100"
+                                            LineBrush="#4F9DDE"/>
+                    </StackPanel>
+                    <StackPanel Margin="4,0">
+                        <DockPanel Margin="0,0,0,2">
+                            <TextBlock Text="MEMORY" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="{Binding MemPeakText}" HorizontalAlignment="Right" FontSize="11"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </DockPanel>
+                        <ctl:SparklineChart Height="48" PointsSource="{Binding MemSeries}" LineBrush="#5FB878"/>
+                    </StackPanel>
+                    <StackPanel Margin="8,0,0,0">
+                        <DockPanel Margin="0,0,0,2">
+                            <TextBlock Text="PLAYERS" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="{Binding PlayerCount}" HorizontalAlignment="Right" FontSize="11"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                        </DockPanel>
+                        <ctl:SparklineChart Height="48" PointsSource="{Binding PlayerSeries}" Minimum="0"
+                                            LineBrush="#C08457"/>
+                    </StackPanel>
+                </UniformGrid>
+            </StackPanel>
+        </Border>
 
         <!-- Quick actions (RCON) -->
         <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="12,10" Margin="0,12,0,0">

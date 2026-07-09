@@ -34,10 +34,14 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
     private readonly IServerProcessService _process;
     private readonly IDialogService _dialogs;
     private readonly IModLibraryService _modLibrary;
+    private readonly IMissionDependencyChecker _depChecker;
+    private readonly IBackupService _backups;
 
     /// <summary>The working copy currently being edited (a clone of the active profile).</summary>
     [ObservableProperty] private ServerProfile? _profile;
     [ObservableProperty] private string _activeProfileName = "No active profile";
+    /// <summary>Transient backup/restore progress line shown in the header while a snapshot runs.</summary>
+    [ObservableProperty] private string _backupStatus = string.Empty;
 
     public bool HasActiveProfile => Profile is not null;
 
@@ -106,7 +110,8 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
 
     public ProfileWorkspaceViewModel(IProfileService profiles, IMissionService missions,
         IModPresetService presets, IConfigGeneratorService configGen, IServerProcessService process,
-        IDialogService dialogs, IModLibraryService modLibrary)
+        IDialogService dialogs, IModLibraryService modLibrary, IMissionDependencyChecker depChecker,
+        IBackupService backups)
     {
         _profiles = profiles;
         _missions = missions;
@@ -115,6 +120,8 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
         _process = process;
         _dialogs = dialogs;
         _modLibrary = modLibrary;
+        _depChecker = depChecker;
+        _backups = backups;
         Title = "Profiles";
 
         // The active profile is set by the sidebar (OpenProfile) before navigating here, so edit it.
@@ -226,6 +233,7 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
     {
         if (Profile is null) return;
         if (IsDirty() && !await SaveInternalAsync(showInfo: false)) return;
+        if (!await MissionDependencyGate.ConfirmAsync(_depChecker, _dialogs, Profile)) return;
         try
         {
             await _process.LaunchAsync(Profile);
@@ -240,6 +248,55 @@ public partial class ProfileWorkspaceViewModel : BaseViewModel, INavigationGuard
     private void Revert()
     {
         if (_profiles.ActiveProfile is not null) LoadWorkingCopy(_profiles.ActiveProfile);
+    }
+
+    /// <summary>Snapshots the profile's configs, keys, mission folder(s) and settings into a timestamped zip.</summary>
+    [RelayCommand]
+    private async Task Backup()
+    {
+        if (Profile is null) return;
+        if (IsDirty() && !await SaveInternalAsync(showInfo: false)) return;   // capture the current state
+        IsBusy = true;
+        try
+        {
+            var progress = new Progress<string>(s => BackupStatus = s);
+            var zip = await _backups.CreateBackupAsync(Profile, progress);
+            await _dialogs.ShowInfoAsync("Backup complete", $"Saved to:\n{zip}");
+        }
+        catch (Exception ex)
+        {
+            await _dialogs.ShowErrorAsync("Backup failed", ex.Message);
+        }
+        finally { IsBusy = false; BackupStatus = string.Empty; }
+    }
+
+    /// <summary>Restores configs/keys/missions from a chosen backup zip back into the server directory.</summary>
+    [RelayCommand]
+    private async Task Restore()
+    {
+        if (Profile is null) return;
+        var root = _backups.GetBackupsRoot(Profile);
+        var zip = await _dialogs.BrowseFileAsync("Choose a backup to restore",
+            "ATLAS backup (*.zip)|*.zip", Directory.Exists(root) ? root : null);
+        if (string.IsNullOrWhiteSpace(zip)) return;
+
+        if (!await _dialogs.ConfirmAsync("Restore backup",
+                "This overwrites the server's config files, Keys and mission folders with the contents of the "
+                + "backup. The current files will be replaced. Continue?", "Restore", "Cancel"))
+            return;
+
+        IsBusy = true;
+        try
+        {
+            var progress = new Progress<string>(s => BackupStatus = s);
+            await _backups.RestoreBackupAsync(zip, Profile, progress);
+            await _dialogs.ShowInfoAsync("Restore complete", "The backup was restored to the server directory.");
+        }
+        catch (Exception ex)
+        {
+            await _dialogs.ShowErrorAsync("Restore failed", ex.Message);
+        }
+        finally { IsBusy = false; BackupStatus = string.Empty; }
     }
 
     private string? Validate()

@@ -218,6 +218,27 @@ public sealed class AtlasDatabase
                     await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
+                // v10 -> v11: admins[] whitelist, idle FPS throttle, lobby/role timeouts, mission whitelist,
+                // and class AntiFlood (all new server.cfg options; defaults preserve existing output).
+                if (currentVersion < 11)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN AdminUids TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN IdleFPSLimit INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN LobbyIdleTimeout INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN RoleTimeOut INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN MissionWhitelistEnabled INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN MissionWhitelistExtra TEXT NOT NULL DEFAULT '';" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN AntiFloodEnabled INTEGER NOT NULL DEFAULT 0;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN AntiFloodCycleTime REAL NOT NULL DEFAULT 0.5;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN AntiFloodCycleLimit INTEGER NOT NULL DEFAULT 400;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN AntiFloodCycleHardLimit INTEGER NOT NULL DEFAULT 4000;" +
+                        "ALTER TABLE ServerProfiles ADD COLUMN AntiFloodKick INTEGER NOT NULL DEFAULT 0;";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
                 await using (var setVersion = conn.CreateCommand())
                 {
                     setVersion.Transaction = tx;

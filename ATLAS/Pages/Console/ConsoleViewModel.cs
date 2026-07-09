@@ -20,6 +20,7 @@ public partial class ConsoleViewModel : BaseViewModel, IDisposable
     private readonly IServerProcessService _server;
     private readonly IProfileService _profiles;
     private readonly IDialogService _dialogs;
+    private readonly IRptAnalyzerService _rptAnalyzer;
     private readonly List<IDisposable> _subs = new();
     private const int MaxLogLines = 500;
 
@@ -38,11 +39,12 @@ public partial class ConsoleViewModel : BaseViewModel, IDisposable
     public UpdaterViewModel Updater { get; }
 
     public ConsoleViewModel(IServerProcessService server, IProfileService profiles, IDialogService dialogs,
-        AppLogViewModel appLog, UpdaterViewModel updater)
+        AppLogViewModel appLog, UpdaterViewModel updater, IRptAnalyzerService rptAnalyzer)
     {
         _server = server;
         _profiles = profiles;
         _dialogs = dialogs;
+        _rptAnalyzer = rptAnalyzer;
         AppLog = appLog;
         Updater = updater;
         Title = "Console";
@@ -79,6 +81,36 @@ public partial class ConsoleViewModel : BaseViewModel, IDisposable
 
     [RelayCommand]
     private void ClearServerRpt() => ServerRpt.Clear();
+
+    /// <summary>Scans the newest RPT on disk for the active profile and opens a grouped known-issue report.</summary>
+    [RelayCommand]
+    private async Task AnalyzeRpt()
+    {
+        var dir = _profiles.ActiveProfile?.ServerDirectory;
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            await _dialogs.ShowInfoAsync("Analyze RPT", "No active profile / server directory.");
+            return;
+        }
+        var rpt = _rptAnalyzer.FindNewestRpt(dir);
+        if (rpt is null)
+        {
+            await _dialogs.ShowInfoAsync("Analyze RPT",
+                "No .rpt log found yet under the server's profiles folder — run the server at least once first.");
+            return;
+        }
+        try
+        {
+            var analysis = await _rptAnalyzer.AnalyzeAsync(rpt);
+            var window = new RptAnalysisWindow(analysis) { Owner = Application.Current?.MainWindow };
+            window.Show();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "RPT analysis failed for {Rpt}.", rpt);
+            await _dialogs.ShowErrorAsync("Analyze RPT", $"Could not analyze the RPT: {ex.Message}");
+        }
+    }
 
     private void AppendServerRpt(string line)
     {

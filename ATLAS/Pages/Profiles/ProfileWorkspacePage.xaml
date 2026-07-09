@@ -113,6 +113,15 @@
                                Text="{Binding ActiveProfileName}" FontWeight="SemiBold"
                                Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding BackupStatus}" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   FontSize="11" Foreground="{DynamicResource Atlas.Brush.TextSecondary}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="240"/>
+                        <Button Content="Backup" Style="{StaticResource Atlas.Button.Secondary}"
+                                Command="{Binding BackupCommand}" Margin="0,0,8,0"
+                                ToolTip="Snapshot this profile's configs, keys and mission folder(s) to a timestamped zip"/>
+                        <Button Content="Restore" Style="{StaticResource Atlas.Button.Secondary}"
+                                Command="{Binding RestoreCommand}" Margin="0,0,8,0"
+                                ToolTip="Restore configs/keys/missions from a backup zip into the server directory"/>
                         <Button Content="Revert" Style="{StaticResource Atlas.Button.Secondary}"
                                 Command="{Binding RevertCommand}" Margin="0,0,8,0"/>
                         <Button Content="Save" Style="{StaticResource Atlas.Button.Primary}"
@@ -373,11 +382,18 @@
                                                   SelectedItem="{Binding Profile.MissionDifficulty}"/>
                                         <CheckBox Content="Auto-init persistent mission" IsChecked="{Binding Profile.AutoInit}"
                                                   ToolTipService.ShowDuration="20000"
-                                                  ToolTip="Initializes the mission on startup as if the first player joined (no player needed to start it). Forces persistent=1 (Arma skips autoInit without it — ATLAS sets it for you). The mission must use base or instant respawn (in its Description.ext) to keep running with 0 players connected. Note: autoInit disables mission Parameters — only default values are used."/>
+                                                  ToolTip="Initializes the mission on startup as if the first player joined (no player needed to start it). Forces persistent=1 (Arma silently skips autoInit without it — ATLAS sets it for you). Note: autoInit disables mission Parameters — only default values are used."/>
                                         <CheckBox Content="Persistent" IsChecked="{Binding Profile.Persistent}"/>
                                         <CheckBox Content="Auto-select mission (skip mission list)" IsChecked="{Binding Profile.AutoSelectMission}"/>
                                         <CheckBox Content="Randomize mission order" IsChecked="{Binding Profile.RandomMissionOrder}"/>
                                         <CheckBox Content="Skip role-selection lobby" IsChecked="{Binding Profile.SkipLobby}"/>
+                                        <CheckBox Content="Mission whitelist (limit admin #mission changes)"
+                                                  IsChecked="{Binding Profile.MissionWhitelistEnabled}" Margin="0,8,0,0"
+                                                  ToolTip="Emits server.cfg missionWhitelist[] — an admin can only change to whitelisted missions. Checked rotation missions are always included automatically."/>
+                                        <TextBlock Style="{StaticResource Lbl}" Text="Extra whitelisted missions (one per line)"/>
+                                        <TextBox Text="{Binding Profile.MissionWhitelistExtra}" AcceptsReturn="True" Height="60"
+                                                 TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
+                                                 IsEnabled="{Binding Profile.MissionWhitelistEnabled}"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -492,6 +508,17 @@
                                             <TextBox Style="{StaticResource Num}" Text="{Binding Profile.RequiredBuild}"/>
                                         </StackPanel>
                                     </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Hdr}" Text="ADMINS"/>
+                                            <TextBlock Style="{StaticResource Lbl}" Text="Whitelisted admin Steam UIDs (one per line)"/>
+                                            <TextBox Text="{Binding Profile.AdminUids}" AcceptsReturn="True" Height="72"
+                                                     TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"/>
+                                            <TextBlock Margin="0,8,0,0" FontSize="11" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource Atlas.Brush.TextDisabled}"
+                                                       Text="Players in this list can #login as admin without the admin password (server.cfg admins[])."/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
 
                                 <!-- Col 2: voice/voting + permissions/logging -->
@@ -545,6 +572,36 @@
                                             <TextBlock Margin="0,8,0,0" FontSize="11" TextWrapping="Wrap"
                                                        Foreground="{DynamicResource Atlas.Brush.TextDisabled}"
                                                        Text="Advanced: script/command strings run on these server events. Leave blank to omit."/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Hdr}" Text="TIMEOUTS &amp; IDLE"/>
+                                            <TextBlock Style="{StaticResource Lbl}" Text="Lobby idle timeout, seconds (0 = Arma default)"/>
+                                            <TextBox Style="{StaticResource Num}" Text="{Binding Profile.LobbyIdleTimeout}"
+                                                     ToolTip="Kicks players who idle in the lobby this long (server.cfg lobbyIdleTimeout)"/>
+                                            <TextBlock Style="{StaticResource Lbl}" Text="Role selection timeout, seconds (0 = Arma default)"/>
+                                            <TextBox Style="{StaticResource Num}" Text="{Binding Profile.RoleTimeOut}"
+                                                     ToolTip="Max time a player may spend in the role-selection screen (server.cfg roleTimeOut)"/>
+                                            <TextBlock Style="{StaticResource Lbl}" Text="Idle FPS limit, 5-60 (0 = off)"/>
+                                            <TextBox Style="{StaticResource Num}" Text="{Binding Profile.IdleFPSLimit}"
+                                                     ToolTip="Caps server FPS only while NO players are connected — saves CPU on an idle box; has zero effect once anyone joins"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Hdr}" Text="ANTI-FLOOD"/>
+                                            <CheckBox Content="Enable chat/command flood protection" IsChecked="{Binding Profile.AntiFloodEnabled}"/>
+                                            <TextBlock Style="{StaticResource Lbl}" Text="Cycle time (seconds)"/>
+                                            <TextBox Style="{StaticResource Num}" Text="{Binding Profile.AntiFloodCycleTime}"/>
+                                            <TextBlock Style="{StaticResource Lbl}" Text="Messages per cycle before flagging"/>
+                                            <TextBox Style="{StaticResource Num}" Text="{Binding Profile.AntiFloodCycleLimit}"/>
+                                            <TextBlock Style="{StaticResource Lbl}" Text="Hard limit (instant trip)"/>
+                                            <TextBox Style="{StaticResource Num}" Text="{Binding Profile.AntiFloodCycleHardLimit}"/>
+                                            <CheckBox Content="Kick offenders (otherwise only logged)" IsChecked="{Binding Profile.AntiFloodKick}"/>
+                                            <TextBlock Margin="0,8,0,0" FontSize="11" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource Atlas.Brush.TextDisabled}"
+                                                       Text="server.cfg class AntiFlood — flags players spamming chat/commands; 4 of the last 8 flagged cycles (or the hard limit) trips it."/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>

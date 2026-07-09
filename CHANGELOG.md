@@ -2,6 +2,29 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.14] — 2026-07-08
+
+### Added
+- **More server.cfg options** — an admin UID whitelist (`admins[]`, for password-less `#login`), an idle
+  FPS limit (caps server FPS only when no players are connected), lobby and role-selection timeouts,
+  a chat/command anti-flood section, and a mission whitelist that limits which missions an admin can
+  switch to (your checked rotation missions are always included).
+- **Missing-mod warning on start** — before launching, ATLAS checks the rotation mission(s)' required
+  addons against your enabled mods and warns you (with a "Start Anyway" option) if something's missing.
+- **Steam visibility check** — the Dashboard shows a live Steam query of the running server, confirming
+  it is up and answering the server browser (independent of RCON).
+- **RPT analyzer** — an **Analyze** button on the Console's Server RPT tab scans the log for known issues
+  (missing addons, signature kicks, script errors, crashes, and harmless noise) and groups them with
+  plain-language guidance.
+- **Backup / restore** — snapshot a profile's configs, keys and mission folders to a timestamped zip and
+  restore them later, from buttons in the profile header.
+- **Performance graphs** — rolling 30-minute CPU, memory and player-count charts on the Dashboard.
+
+### Fixed
+- **autoInit now actually works.** `-autoInit` is a startup parameter, not a `server.cfg` setting; ATLAS
+  was writing it into `server.cfg` where the game ignored it, so the mission never auto-initialized. It
+  is now passed on the launch command line (and still forces `persistent = 1`, which the game requires).
+
 ## [0.3.12] — 2026-07-07
 
 ### Added

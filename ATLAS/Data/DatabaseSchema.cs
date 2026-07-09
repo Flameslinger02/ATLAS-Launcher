@@ -7,7 +7,7 @@ namespace Atlas.Data;
 public static class DatabaseSchema
 {
     /// <summary>Increment on every schema change and add a migration step in <see cref="AtlasDatabase"/>.</summary>
-    public const int SchemaVersion = 10;
+    public const int SchemaVersion = 11;
 
     /// <summary>
     /// Full DDL for schema version 1. All statements use <c>IF NOT EXISTS</c> so this is idempotent.

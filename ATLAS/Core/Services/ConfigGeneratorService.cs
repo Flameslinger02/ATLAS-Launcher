@@ -25,6 +25,9 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L($"hostname = {Str(p.ServerName)};");
         L($"password = {Str(p.ServerPassword)};");
         L($"passwordAdmin = {Str(p.AdminPassword)};");
+        var adminUids = SplitList(p.AdminUids);
+        if (adminUids.Length > 0)
+            L($"admins[] = {ArrStr(adminUids)};   // whitelisted UIDs: #login without a password");
         L($"maxPlayers = {p.MaxPlayers};");
         L();
 
@@ -94,13 +97,24 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         {
             L("// No mission template set — configure one on the Mission tab.");
         }
-        // autoInit has no effect in Arma unless persistent = 1, so force persistent on whenever autoInit is
-        // set (otherwise "autoInit=1; persistent=0;" silently does nothing and the mission never auto-loads).
+        // autoInit is a STARTUP PARAMETER (-autoInit, emitted in BuildLaunchArguments) — NOT a server.cfg
+        // key; writing it here did nothing (Arma ignores unknown cfg keys). What server.cfg needs is
+        // persistent = 1, without which Arma skips -autoInit entirely — so force it on with autoInit.
         var persistent = p.Persistent || p.AutoInit;
-        L($"autoInit = {B(p.AutoInit)};");
         L($"persistent = {B(persistent)};");
         if (p.AutoSelectMission) L("autoSelectMission = 1;");
         if (p.RandomMissionOrder) L("randomMissionOrder = 1;");
+        if (p.MissionWhitelistEnabled)
+        {
+            // Union of the checked rotation missions and the profile's extra entries: an admin can only
+            // #mission-change to whitelisted missions, so the rotation itself must always be included.
+            var whitelist = missionQueue
+                .Concat(SplitList(p.MissionWhitelistExtra))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (whitelist.Length > 0)
+                L($"missionWhitelist[] = {ArrStr(whitelist)};   // limits admin #mission changes");
+        }
         L();
 
         L("// --- Voice over net ---");
@@ -115,6 +129,30 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         L($"voteThreshold = {threshold.ToString(Inv)};");
         L($"voteMissionPlayers = {(int)Math.Round(p.VoteMissionPlayers)};");
         L();
+
+        // Behaviour timeouts / idle throttle — 0 = omit (Arma defaults apply).
+        if (p.LobbyIdleTimeout > 0 || p.RoleTimeOut > 0 || p.IdleFPSLimit > 0)
+        {
+            L("// --- Timeouts / idle ---");
+            if (p.LobbyIdleTimeout > 0) L($"lobbyIdleTimeout = {p.LobbyIdleTimeout};");
+            if (p.RoleTimeOut > 0) L($"roleTimeOut = {p.RoleTimeOut};");
+            if (p.IdleFPSLimit > 0)
+                L($"idleFPSLimit = {Math.Clamp(p.IdleFPSLimit, 5, 60)};   // FPS cap only while 0 players are connected");
+            L();
+        }
+
+        if (p.AntiFloodEnabled)
+        {
+            L("// --- Anti-flood (chat/command spam protection) ---");
+            L("class AntiFlood");
+            L("{");
+            L($"    cycleTime = {p.AntiFloodCycleTime.ToString(Inv)};");
+            L($"    cycleLimit = {p.AntiFloodCycleLimit};");
+            L($"    cycleHardLimit = {p.AntiFloodCycleHardLimit};");
+            L($"    enableKick = {B(p.AntiFloodKick)};");
+            L("};");
+            L();
+        }
 
         // Scripting callbacks — only emit the advanced hooks that are set.
         if (!string.IsNullOrWhiteSpace(p.ServerCommandPassword) || !string.IsNullOrWhiteSpace(p.OnUserConnected)
@@ -266,6 +304,7 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         if (p.NoPause) Flag("-noPause");
         if (p.NoLogs) Flag("-nologs");
         if (p.LoadMissionToMemory) Flag("-loadMissionToMemory");
+        if (p.AutoInit) Flag("-autoInit");   // startup param, not a cfg key; needs persistent=1 (forced in server.cfg)
         if (p.CpuCount > 0) Flag($"-cpuCount={p.CpuCount}");
         if (p.ExThreads > 0) Flag($"-exThreads={p.ExThreads}");
         if (p.MaxMem > 0) Flag($"-maxMem={p.MaxMem}");
@@ -316,6 +355,11 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
 
     /// <summary>Boolean as an Arma config flag (1/0).</summary>
     private static string B(bool b) => b ? "1" : "0";
+
+    /// <summary>Splits a user-entered list (newline and/or ';' separated) into trimmed non-empty items.</summary>
+    private static string[] SplitList(string? s) =>
+        (s ?? string.Empty).Split(new[] { ';', '\r', '\n' },
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>The ordered mission rotation: the ';'-separated <see cref="ServerProfile.MissionQueue"/>, or the
     /// single <see cref="ServerProfile.MissionName"/> when the queue is empty (legacy / manual entry).</summary>

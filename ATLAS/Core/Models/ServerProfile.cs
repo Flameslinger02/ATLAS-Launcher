@@ -86,6 +86,9 @@ public class ServerProfile
     public int VerifySignatures { get; set; } = 2;
     public bool RequiredSecureId { get; set; } = true;
     public int RequiredBuild { get; set; }   // 0 = any build; otherwise clients must match this game build
+    /// <summary>Whitelisted admin Steam UIDs (newline/';'-separated) — server.cfg <c>admins[]</c>; these
+    /// players can <c>#login</c> without the admin password. Empty = line omitted.</summary>
+    public string AdminUids { get; set; } = string.Empty;
 
     // server.cfg — Mission
     public string MissionName { get; set; } = string.Empty;
@@ -98,6 +101,12 @@ public class ServerProfile
     public bool AutoSelectMission { get; set; }   // autoSelectMission = 1
     public bool RandomMissionOrder { get; set; }  // randomMissionOrder = 1
     public bool SkipLobby { get; set; }           // skipLobby = 1 (inside the mission class)
+    /// <summary>Emit server.cfg <c>missionWhitelist[]</c>: limits what an admin can #mission-change to.
+    /// The whitelist is the union of the checked rotation missions (<see cref="MissionQueue"/>) and
+    /// <see cref="MissionWhitelistExtra"/>.</summary>
+    public bool MissionWhitelistEnabled { get; set; }
+    /// <summary>Extra whitelist mission names (newline/';'-separated) beyond the checked rotation.</summary>
+    public string MissionWhitelistExtra { get; set; } = string.Empty;
 
     // Arma3Profile — granular difficulty, AI level and server view distance (Phase 3f).
     // Tri-state ints map to class DifficultyPresets/CustomDifficulty/Options (0/1/2); on-off bools to
@@ -138,6 +147,18 @@ public class ServerProfile
     public bool VotingEnabled { get; set; } = true;
     public float VoteMissionPlayers { get; set; } = 1;
     public float VoteThreshold { get; set; } = 0.33f;
+
+    // server.cfg — Behaviour timeouts & idle throttle (0 = omit, Arma default applies)
+    public int LobbyIdleTimeout { get; set; }     // lobbyIdleTimeout: kick players idling in the lobby (s)
+    public int RoleTimeOut { get; set; }          // roleTimeOut: max seconds in the role-selection screen
+    public int IdleFPSLimit { get; set; }         // idleFPSLimit: server FPS cap with NO players (5-60)
+
+    // server.cfg — class AntiFlood (chat/command spam protection)
+    public bool AntiFloodEnabled { get; set; }
+    public double AntiFloodCycleTime { get; set; } = 0.5;   // seconds per measuring cycle
+    public int AntiFloodCycleLimit { get; set; } = 400;     // messages per cycle before flagging
+    public int AntiFloodCycleHardLimit { get; set; } = 4000;// messages per cycle for an instant trip
+    public bool AntiFloodKick { get; set; }                 // enableKick: kick offenders (else just log)
 
     // server.cfg — Advanced
     public bool EnableDebugConsole { get; set; }

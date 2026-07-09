@@ -55,6 +55,10 @@ public static class AppHost
 
                 // ---- Phase 6: missions ----
                 services.AddSingleton<IMissionService, MissionService>();
+                services.AddSingleton<IMissionDependencyChecker, MissionDependencyChecker>();
+                services.AddSingleton<ISteamQueryService, SteamQueryService>();
+                services.AddSingleton<IRptAnalyzerService, RptAnalyzerService>();
+                services.AddSingleton<IBackupService, BackupService>();
                 services.AddSingleton<IArmaInstallLocator, ArmaInstallLocator>();
 
                 // ---- Phase 7: server launch & process management ----

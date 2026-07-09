@@ -530,7 +530,10 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         "DiffStaminaBar", "DiffWeaponCrosshair", "DiffVisionAid", "DiffCameraShake", "DiffScoreTable",
         "DiffDeathMessages", "DiffVonID", "DiffMapContentFriendly", "DiffMapContentEnemy", "DiffMapContentMines",
         "DiffAutoReport", "DiffMultipleSaves", "DiffTacticalPing",
-        "SkillAI", "PrecisionAI", "ViewDistance", "ObjectViewDistance", "TerrainGrid"
+        "SkillAI", "PrecisionAI", "ViewDistance", "ObjectViewDistance", "TerrainGrid",
+        "AdminUids", "IdleFPSLimit", "LobbyIdleTimeout", "RoleTimeOut",
+        "MissionWhitelistEnabled", "MissionWhitelistExtra",
+        "AntiFloodEnabled", "AntiFloodCycleTime", "AntiFloodCycleLimit", "AntiFloodCycleHardLimit", "AntiFloodKick"
     };
 
     private static void AddScalarParameters(SqliteCommand cmd, ServerProfile p)
@@ -665,6 +668,17 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         cmd.Parameters.AddWithValue("@ViewDistance", p.ViewDistance);
         cmd.Parameters.AddWithValue("@ObjectViewDistance", p.ObjectViewDistance);
         cmd.Parameters.AddWithValue("@TerrainGrid", p.TerrainGrid);
+        cmd.Parameters.AddWithValue("@AdminUids", p.AdminUids);
+        cmd.Parameters.AddWithValue("@IdleFPSLimit", p.IdleFPSLimit);
+        cmd.Parameters.AddWithValue("@LobbyIdleTimeout", p.LobbyIdleTimeout);
+        cmd.Parameters.AddWithValue("@RoleTimeOut", p.RoleTimeOut);
+        cmd.Parameters.AddWithValue("@MissionWhitelistEnabled", p.MissionWhitelistEnabled);
+        cmd.Parameters.AddWithValue("@MissionWhitelistExtra", p.MissionWhitelistExtra);
+        cmd.Parameters.AddWithValue("@AntiFloodEnabled", p.AntiFloodEnabled);
+        cmd.Parameters.AddWithValue("@AntiFloodCycleTime", p.AntiFloodCycleTime);
+        cmd.Parameters.AddWithValue("@AntiFloodCycleLimit", p.AntiFloodCycleLimit);
+        cmd.Parameters.AddWithValue("@AntiFloodCycleHardLimit", p.AntiFloodCycleHardLimit);
+        cmd.Parameters.AddWithValue("@AntiFloodKick", p.AntiFloodKick);
     }
 
     private static ServerProfile MapScalars(SqliteDataReader r)
@@ -809,6 +823,17 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             ViewDistance = I("ViewDistance"),
             ObjectViewDistance = I("ObjectViewDistance"),
             TerrainGrid = D("TerrainGrid"),
+            AdminUids = S("AdminUids"),
+            IdleFPSLimit = I("IdleFPSLimit"),
+            LobbyIdleTimeout = I("LobbyIdleTimeout"),
+            RoleTimeOut = I("RoleTimeOut"),
+            MissionWhitelistEnabled = B("MissionWhitelistEnabled"),
+            MissionWhitelistExtra = S("MissionWhitelistExtra"),
+            AntiFloodEnabled = B("AntiFloodEnabled"),
+            AntiFloodCycleTime = D("AntiFloodCycleTime"),
+            AntiFloodCycleLimit = I("AntiFloodCycleLimit"),
+            AntiFloodCycleHardLimit = I("AntiFloodCycleHardLimit"),
+            AntiFloodKick = B("AntiFloodKick"),
         };
     }
 }
