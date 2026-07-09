@@ -218,6 +218,12 @@
                                 <CheckBox Content="Profiling branch" Margin="12,0,0,0"
                                           IsChecked="{Binding UseProfilingBranch}"/>
                             </StackPanel>
+                            <Separator Margin="0,12" Background="{DynamicResource Atlas.Brush.Border}"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,8"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"
+                                       Text="One-click maintenance: updates the Arma server and the active profile's Workshop mods, then restarts the server."/>
+                            <Button Style="{StaticResource Atlas.Button.Secondary}" Content="Update &amp; Restart Now" Padding="14,6"
+                                    HorizontalAlignment="Left" Command="{Binding UpdateAndRestartNowCommand}"/>
                         </StackPanel>
                     </Border>
 

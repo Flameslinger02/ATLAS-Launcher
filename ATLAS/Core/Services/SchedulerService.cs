@@ -28,9 +28,7 @@ public sealed class SchedulerService : ISchedulerService, IHostedService, IDispo
     private readonly AtlasDatabase _db;
     private readonly IProfileService _profiles;
     private readonly IServerProcessService _server;
-    private readonly ISteamCmdService _steamCmd;
-    private readonly IModDeploymentService _deploy;
-    private readonly ISettingsService _settings;
+    private readonly IServerMaintenanceService _maintenance;
 
     private readonly object _runLock = new();
     private readonly HashSet<int> _running = new();   // single-flight by task id
@@ -42,14 +40,12 @@ public sealed class SchedulerService : ISchedulerService, IHostedService, IDispo
 
     public SchedulerService(
         AtlasDatabase db, IProfileService profiles, IServerProcessService server,
-        ISteamCmdService steamCmd, IModDeploymentService deploy, ISettingsService settings)
+        IServerMaintenanceService maintenance)
     {
         _db = db;
         _profiles = profiles;
         _server = server;
-        _steamCmd = steamCmd;
-        _deploy = deploy;
-        _settings = settings;
+        _maintenance = maintenance;
     }
 
     // ----- Hosted lifecycle -----
@@ -204,7 +200,11 @@ public sealed class SchedulerService : ISchedulerService, IHostedService, IDispo
                     return "Server was stopped; launched.";
                 }
                 if (p.CountdownEnabled && RconConfigured(profile) && p.MinutesWarnings.Any(m => m > 0))
-                    return await RestartWithCountdownAsync(profile, p, ct).ConfigureAwait(false);
+                {
+                    await RunCountdownAsync(profile, p, ct).ConfigureAwait(false);
+                    await _server.RestartAsync(profile, ct).ConfigureAwait(false);
+                    return "Server restarted (with countdown).";
+                }
                 await _server.RestartAsync(profile, ct).ConfigureAwait(false);
                 return "Server restarted.";
             }
@@ -224,45 +224,32 @@ public sealed class SchedulerService : ISchedulerService, IHostedService, IDispo
                 var response = await SendCommandAsync(profile, p.Command, ct).ConfigureAwait(false);
                 return string.IsNullOrWhiteSpace(response) ? "Command sent." : $"Command sent: {Trim(response, 120)}";
             }
+            // UpdateRestart is the combined "maintenance restart": update the server + mods, then restart.
+            // Legacy ModUpdate/ServerUpdate rows are folded into the same path (the editor no longer creates
+            // the separate types).
+            case ScheduledTaskType.UpdateRestart:
             case ScheduledTaskType.ModUpdate:
-            {
-                var p = Payload<UpdatePayload>(task) ?? new UpdatePayload();
-                var ids = profile.Mods.Where(m => m.WorkshopId > 0).Select(m => m.WorkshopId).Distinct().ToList();
-                if (ids.Count == 0) return "No Workshop mods to update.";
-                var login = _steamCmd.GetSavedUsername();
-                if (string.IsNullOrWhiteSpace(login)) return "No saved Steam login; mod update skipped.";
-                await _steamCmd.UpdateModsAsync(ids, StagingPath(), login, progress, ct).ConfigureAwait(false);
-                await _deploy.DeployModsAsync(profile, progress, ct).ConfigureAwait(false);
-                await MaybeRestartAsync(p.AutoRestartAfterUpdate, profile, ct).ConfigureAwait(false);
-                return $"Updated {ids.Count} mod(s).{(p.AutoRestartAfterUpdate ? " Restarted." : "")}";
-            }
             case ScheduledTaskType.ServerUpdate:
             {
-                var p = Payload<UpdatePayload>(task) ?? new UpdatePayload();
-                if (string.IsNullOrWhiteSpace(profile.ServerDirectory))
-                    return "Server directory not set; update skipped.";
-                await _steamCmd.UpdateServerAsync(profile.ServerDirectory, profile.UseProfilingBranch, progress, ct)
-                    .ConfigureAwait(false);
-                await MaybeRestartAsync(p.AutoRestartAfterUpdate, profile, ct).ConfigureAwait(false);
-                return $"Server updated.{(p.AutoRestartAfterUpdate ? " Restarted." : "")}";
+                var p = Payload<RestartPayload>(task) ?? new RestartPayload();
+                if (p.CountdownEnabled && RconConfigured(profile)
+                    && _server.CurrentState == ServerState.Running && p.MinutesWarnings.Any(m => m > 0))
+                    await RunCountdownAsync(profile, p, ct).ConfigureAwait(false);
+                return await _maintenance.UpdateAndRestartAsync(profile, progress, ct).ConfigureAwait(false);
             }
             default:
                 return "Unknown task type.";
         }
     }
 
-    private async Task MaybeRestartAsync(bool autoRestart, ServerProfile profile, CancellationToken ct)
-    {
-        if (autoRestart && _server.CurrentState == ServerState.Running)
-            await _server.RestartAsync(profile, ct).ConfigureAwait(false);
-    }
-
-    /// <summary>Broadcasts the warning countdown over a short-lived RCON client, then restarts the task's
-    /// profile. If RCON can't be reached the configured lead time is still honored (silent), so a transient
-    /// RCON hiccup doesn't degrade the safest restart into an instant, zero-warning kick.</summary>
-    private async Task<string> RestartWithCountdownAsync(ServerProfile profile, RestartPayload p, CancellationToken ct)
+    /// <summary>Broadcasts the warning countdown over a short-lived RCON client and waits out the lead time,
+    /// leaving the actual restart to the caller. If RCON can't be reached the configured lead time is still
+    /// honored (silent), so a transient RCON hiccup doesn't degrade the safest restart into an instant,
+    /// zero-warning kick.</summary>
+    private static async Task RunCountdownAsync(ServerProfile profile, RestartPayload p, CancellationToken ct)
     {
         var warnings = p.MinutesWarnings.Where(m => m > 0).Distinct().OrderByDescending(m => m).ToList();
+        if (warnings.Count == 0) return;
         var leadMinutes = warnings.First();   // max warning = total lead time
 
         using var rcon = new BattlEyeRconClient();
@@ -278,14 +265,11 @@ public sealed class SchedulerService : ISchedulerService, IHostedService, IDispo
             }
             if (prev is { } last) await Task.Delay(TimeSpan.FromMinutes(last), ct).ConfigureAwait(false);
             rcon.Disconnect();
-            await _server.RestartAsync(profile, ct).ConfigureAwait(false);
-            return "Server restarted (with countdown).";
+            return;
         }
 
-        // Could not connect: honor the intended downtime grace, then restart without warnings.
+        // Could not connect: honor the intended downtime grace, then let the caller restart without warnings.
         await Task.Delay(TimeSpan.FromMinutes(leadMinutes), ct).ConfigureAwait(false);
-        await _server.RestartAsync(profile, ct).ConfigureAwait(false);
-        return $"RCON unreachable; restarted without countdown after {leadMinutes}m.";
     }
 
     private static async Task BroadcastAsync(ServerProfile profile, IEnumerable<string> messages, CancellationToken ct)
@@ -308,14 +292,6 @@ public sealed class SchedulerService : ISchedulerService, IHostedService, IDispo
 
     private static bool RconConfigured(ServerProfile p) =>
         p.EnableBattlEye && !string.IsNullOrWhiteSpace(p.RconPassword);
-
-    private string StagingPath()
-    {
-        var configured = _settings.Settings.ModStagingDirectory;
-        return string.IsNullOrWhiteSpace(configured)
-            ? Path.Combine(AppConstants.AppDataRoot, "Mods")
-            : configured;
-    }
 
     // ----- Cron helpers -----
 

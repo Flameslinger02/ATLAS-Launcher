@@ -79,13 +79,62 @@
                     <TextBlock Style="{StaticResource Lbl}" Text="TYPE"/>
                     <ComboBox ItemsSource="{Binding TaskTypes}" SelectedItem="{Binding SelectedType}"/>
 
-                    <TextBlock Style="{StaticResource Lbl}" Text="CRON EXPRESSION (5-field; interpreted in local time)"/>
-                    <TextBox Text="{Binding Cron, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
-                    <TextBlock Text="{Binding CronPreview}" Margin="0,4,0,0"
+                    <TextBlock Style="{StaticResource Lbl}" Text="SCHEDULE (interpreted in local time)"/>
+                    <ComboBox ItemsSource="{Binding ScheduleModes}" SelectedItem="{Binding ScheduleMode}"/>
+
+                    <!-- Daily -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                Visibility="{Binding IsDaily, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="At" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox Width="70" ItemsSource="{Binding Hours}" SelectedItem="{Binding TimeHour}"/>
+                        <TextBlock Text=":" VerticalAlignment="Center" Margin="6,0"/>
+                        <ComboBox Width="70" ItemsSource="{Binding Minutes}" SelectedItem="{Binding TimeMinute}"/>
+                    </StackPanel>
+
+                    <!-- Weekly -->
+                    <StackPanel Visibility="{Binding IsWeekly, Converter={StaticResource BoolToVisibility}}">
+                        <WrapPanel Margin="0,8,0,0">
+                            <CheckBox Content="Mon" Margin="0,0,12,0" IsChecked="{Binding DayMon}"/>
+                            <CheckBox Content="Tue" Margin="0,0,12,0" IsChecked="{Binding DayTue}"/>
+                            <CheckBox Content="Wed" Margin="0,0,12,0" IsChecked="{Binding DayWed}"/>
+                            <CheckBox Content="Thu" Margin="0,0,12,0" IsChecked="{Binding DayThu}"/>
+                            <CheckBox Content="Fri" Margin="0,0,12,0" IsChecked="{Binding DayFri}"/>
+                            <CheckBox Content="Sat" Margin="0,0,12,0" IsChecked="{Binding DaySat}"/>
+                            <CheckBox Content="Sun" IsChecked="{Binding DaySun}"/>
+                        </WrapPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="At" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox Width="70" ItemsSource="{Binding Hours}" SelectedItem="{Binding TimeHour}"/>
+                            <TextBlock Text=":" VerticalAlignment="Center" Margin="6,0"/>
+                            <ComboBox Width="70" ItemsSource="{Binding Minutes}" SelectedItem="{Binding TimeMinute}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Interval -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                Visibility="{Binding IsInterval, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="Every" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox Width="70" ItemsSource="{Binding IntervalChoices}" SelectedItem="{Binding IntervalHours}"/>
+                        <TextBlock Text="hour(s)" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Advanced (raw cron) -->
+                    <StackPanel Visibility="{Binding IsAdvanced, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource Lbl}" Text="CRON EXPRESSION (5-field)"/>
+                        <TextBox Text="{Binding Cron, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding CronPreview}" Margin="0,8,0,0"
                                Foreground="{DynamicResource Atlas.Brush.Accent}" TextWrapping="Wrap"/>
 
-                    <!-- Restart -->
-                    <StackPanel Visibility="{Binding IsRestart, Converter={StaticResource BoolToVisibility}}">
+                    <!-- Restart / Update &amp; Restart: shared countdown -->
+                    <StackPanel Visibility="{Binding ShowCountdown, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource Lbl}" Text="BEFORE RESTARTING"
+                                   Visibility="{Binding IsUpdateRestart, Converter={StaticResource BoolToVisibility}}"/>
+                        <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource Atlas.Brush.TextSecondary}" FontSize="11"
+                                   Visibility="{Binding IsUpdateRestart, Converter={StaticResource BoolToVisibility}}"
+                                   Text="Updates the Arma server and this profile's Workshop mods (SteamCMD), then restarts."/>
                         <CheckBox Content="Broadcast a countdown over RCON before restarting"
                                   IsChecked="{Binding CountdownEnabled}"/>
                         <TextBlock Style="{StaticResource Lbl}" Text="WARNING MESSAGE ({minutes} is substituted)"/>
@@ -105,12 +154,6 @@
                     <StackPanel Visibility="{Binding IsRconCommand, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Style="{StaticResource Lbl}" Text="RCON COMMAND (e.g. #lock)"/>
                         <TextBox Text="{Binding RconCommandText, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas"/>
-                    </StackPanel>
-
-                    <!-- Mod/Server update -->
-                    <StackPanel Visibility="{Binding IsUpdate, Converter={StaticResource BoolToVisibility}}">
-                        <CheckBox Content="Restart the server after updating (if running)"
-                                  IsChecked="{Binding AutoRestartAfterUpdate}"/>
                     </StackPanel>
 
                     <CheckBox Content="Enabled" IsChecked="{Binding IsEnabledOnSave}" Margin="0,16,0,0"/>

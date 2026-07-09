@@ -71,10 +71,16 @@
                                Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
                 </WrapPanel>
 
-                <!-- Registry grid -->
-                <Border Grid.Row="4" Background="{DynamicResource Atlas.Brush.Surface}"
+                <!-- Registry grid + selected-mod detail card -->
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="300"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="{DynamicResource Atlas.Brush.Surface}"
                         BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4">
-                    <DataGrid ItemsSource="{Binding Library}" AutoGenerateColumns="False" CanUserAddRows="False"
+                    <DataGrid ItemsSource="{Binding Library}" SelectedItem="{Binding SelectedLibraryRow, Mode=TwoWay}"
+                              AutoGenerateColumns="False" CanUserAddRows="False"
                               HeadersVisibility="Column" GridLinesVisibility="Horizontal" Background="Transparent"
                               BorderThickness="0" RowBackground="{DynamicResource Atlas.Brush.Surface}"
                               Foreground="{DynamicResource Atlas.Brush.TextPrimary}"
@@ -100,7 +106,36 @@
                             <DataGridTextColumn Header="Used by" Binding="{Binding UsedBy}" IsReadOnly="True" Width="180" MinWidth="100"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                </Border>
+                    </Border>
+
+                    <!-- Selected-mod detail card -->
+                    <Border Grid.Column="1" Margin="12,0,0,0" Background="{DynamicResource Atlas.Brush.Surface}"
+                            BorderBrush="{DynamicResource Atlas.Brush.Border}" BorderThickness="1" CornerRadius="4"
+                            Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel Margin="12">
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding DetailName}" FontWeight="SemiBold"
+                                       FontSize="14" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                            <Border DockPanel.Dock="Top" Margin="0,8,0,0" MaxHeight="150" CornerRadius="4"
+                                    HorizontalAlignment="Left"
+                                    Visibility="{Binding HasDetailImage, Converter={StaticResource BoolToVisibility}}">
+                                <Image Source="{Binding DetailImageUrl}" Stretch="Uniform" StretchDirection="DownOnly"/>
+                            </Border>
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding DetailMeta}" Margin="0,8,0,0" FontSize="11"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding DetailInfo}" Margin="0,8,0,0"
+                                       TextWrapping="Wrap" Foreground="{DynamicResource Atlas.Brush.Accent}"/>
+                            <Button DockPanel.Dock="Bottom" Style="{StaticResource Tool}" Content="View on Workshop"
+                                    Margin="0,8,0,0" HorizontalAlignment="Left"
+                                    Command="{Binding OpenSelectedInWorkshopCommand}"
+                                    Visibility="{Binding HasWorkshopId, Converter={StaticResource BoolToVisibility}}"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                                <TextBlock Text="{Binding DetailDescription}" TextWrapping="Wrap" FontSize="12"
+                                           Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </Grid>
 
                 <!-- Deploy / verify a profile's mods -->
                 <DockPanel Grid.Row="5" Margin="0,8,0,8" LastChildFill="False">

@@ -16,7 +16,14 @@ public sealed class ScheduledTaskRow
 
     public int Id => Task.Id;
     public string Name => Task.Name;
-    public string TypeText => Task.TaskType.ToString();
+    public string TypeText => Task.TaskType switch
+    {
+        ScheduledTaskType.UpdateRestart => "Update & Restart",
+        ScheduledTaskType.ModUpdate => "Update & Restart",     // legacy rows now run the combined action
+        ScheduledTaskType.ServerUpdate => "Update & Restart",  // "
+        ScheduledTaskType.RconCommand => "RCON Command",
+        _ => Task.TaskType.ToString(),
+    };
     public string Cron => Task.CronExpression;
     public string NextRunText => Task.NextRunAt is { } n ? n.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "—";
     public string LastRunText => Task.LastRunAt is { } l ? l.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "—";

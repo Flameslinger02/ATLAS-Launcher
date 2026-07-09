@@ -2,6 +2,23 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.4.1] — 2026-07-08
+
+### Added
+- **Update & Restart** — a one-click maintenance action that stops the server, updates the Arma 3 server
+  and the profile's Workshop mods (SteamCMD), then restarts it. Available as an **"Update & Restart Now"**
+  button on **Console → Updates**, and as a **scheduled task type** (with the same optional RCON countdown
+  warnings as a plain restart). This replaces the separate "mod update" and "server update" scheduled task
+  types; existing ones keep working and now run the combined action.
+- **Mod details on selection** — clicking a mod in the **Mods → Mod Library** grid shows a card with its
+  Steam Workshop preview image, title, size, last-updated date and description, plus a "View on Workshop"
+  link. Local or unlisted mods (no Workshop ID) show a short placeholder instead.
+
+### Changed
+- **Friendlier schedule editor** — scheduled tasks are now set up with a simple **Daily / Weekly / Every
+  N hours** chooser (with day-of-week toggles and a time picker) instead of hand-writing a cron expression.
+  An **Advanced** mode still exposes the raw cron field, and existing schedules open in the matching mode.
+
 ## [0.4.0] — 2026-07-08
 
 ### Added

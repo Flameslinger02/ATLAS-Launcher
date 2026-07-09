@@ -6,8 +6,14 @@ public enum ScheduledTaskType
     Restart,
     Message,
     RconCommand,
+
+    // Legacy: kept so existing rows still parse. The editor no longer offers these — they are folded into
+    // UpdateRestart (which updates the server AND mods, then restarts). See SchedulerService.ExecuteAsync.
     ModUpdate,
-    ServerUpdate
+    ServerUpdate,
+
+    /// <summary>Update the Arma server + Workshop mods, then restart (optionally with an RCON countdown).</summary>
+    UpdateRestart
 }
 
 /// <summary>

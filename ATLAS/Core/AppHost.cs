@@ -63,6 +63,7 @@ public static class AppHost
 
                 // ---- Phase 7: server launch & process management ----
                 services.AddSingleton<IServerProcessService, ServerProcessService>();
+                services.AddSingleton<IServerMaintenanceService, ServerMaintenanceService>();
                 services.AddSingleton<IHeadlessClientService, HeadlessClientService>();
 
                 // ---- Phase 8: RCON (BattlEye BERCon) ----

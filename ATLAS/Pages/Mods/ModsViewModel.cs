@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Windows;
 using Atlas.Core.Models;
@@ -46,6 +47,18 @@ public partial class ModsViewModel : BaseViewModel
     [ObservableProperty] private ServerProfile? _targetProfile;
     [ObservableProperty] private bool _isWorking;
     [ObservableProperty] private string _libraryStatus = string.Empty;
+
+    // ----- Selected-mod detail card (Library tab) -----
+    private int _detailRequest;   // guards against out-of-order async fetches on rapid selection
+    [ObservableProperty] private ModLibraryRow? _selectedLibraryRow;
+    [ObservableProperty] private bool _hasSelection;
+    [ObservableProperty] private bool _hasWorkshopId;
+    [ObservableProperty] private bool _hasDetailImage;
+    [ObservableProperty] private string _detailName = string.Empty;
+    [ObservableProperty] private string _detailInfo = string.Empty;      // loading / local / error line
+    [ObservableProperty] private string _detailMeta = string.Empty;      // size · updated
+    [ObservableProperty] private string _detailDescription = string.Empty;
+    [ObservableProperty] private string _detailImageUrl = string.Empty;
 
     public ModsViewModel(IModLibraryService library, ISteamCmdService steam, IModDeploymentService deploy,
         IProfileService profiles, ISettingsService settings, IDialogService dialogs, ModPresetsViewModel presets)
@@ -109,6 +122,88 @@ public partial class ModsViewModel : BaseViewModel
         : m.UpdateAvailable ? "Update available"
         : m.LastChecked == DateTime.MinValue ? "Not checked"
         : "Up to date";
+
+    // --------------------------------------------------------------- selected-mod detail card
+
+    partial void OnSelectedLibraryRowChanged(ModLibraryRow? value) => _ = LoadModDetailAsync(value);
+
+    /// <summary>Populates the detail card for the selected library row. Workshop mods fetch their preview
+    /// image + metadata from Steam; local/unlisted mods (no Workshop id) show a graceful placeholder.</summary>
+    private async Task LoadModDetailAsync(ModLibraryRow? row)
+    {
+        var req = ++_detailRequest;
+        HasDetailImage = false;
+        DetailImageUrl = string.Empty;
+        DetailMeta = string.Empty;
+        DetailDescription = string.Empty;
+        HasSelection = row is not null;
+        HasWorkshopId = row is { WorkshopId: > 0 };
+
+        if (row is null) { DetailName = string.Empty; DetailInfo = string.Empty; return; }
+
+        DetailName = row.Name;
+        if (row.WorkshopId == 0)
+        {
+            DetailInfo = row.IsLocal ? "Local mod — no Workshop data." : "No Workshop ID — no Workshop data.";
+            return;
+        }
+
+        DetailInfo = "Loading Workshop info…";
+        try
+        {
+            var info = await _steam.GetWorkshopModInfoAsync(row.WorkshopId);
+            if (req != _detailRequest) return;   // a newer selection superseded this fetch
+            if (info is null)
+            {
+                DetailInfo = "Couldn't load Workshop info (offline, or the item is hidden/removed).";
+                return;
+            }
+            DetailName = string.IsNullOrWhiteSpace(info.Title) ? row.Name : info.Title;
+            DetailMeta = $"{FormatBytes(info.FileSize)}  ·  updated {info.TimeUpdated.ToLocalTime():yyyy-MM-dd}";
+            DetailDescription = Truncate(info.Description, 800);
+            if (!string.IsNullOrWhiteSpace(info.PreviewUrl))
+            {
+                DetailImageUrl = info.PreviewUrl;
+                HasDetailImage = true;
+            }
+            DetailInfo = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            if (req == _detailRequest) DetailInfo = "Couldn't load Workshop info.";
+            Log.Debug(ex, "Workshop detail fetch failed for {Id}.", row.WorkshopId);
+        }
+    }
+
+    [RelayCommand]
+    private void OpenSelectedInWorkshop()
+    {
+        var id = SelectedLibraryRow?.WorkshopId ?? 0;
+        if (id == 0) return;
+        try
+        {
+            Process.Start(new ProcessStartInfo(
+                $"https://steamcommunity.com/sharedfiles/filedetails/?id={id}") { UseShellExecute = true });
+        }
+        catch (Exception ex) { Log.Debug(ex, "Could not open the Workshop page for {Id}.", id); }
+    }
+
+    private static string FormatBytes(ulong bytes)
+    {
+        if (bytes == 0) return "—";
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double size = bytes;
+        var u = 0;
+        while (size >= 1024 && u < units.Length - 1) { size /= 1024; u++; }
+        return $"{size:0.#} {units[u]}";
+    }
+
+    private static string Truncate(string s, int max)
+    {
+        if (string.IsNullOrEmpty(s)) return string.Empty;
+        s = s.Trim();
+        return s.Length <= max ? s : s[..max].TrimEnd() + "…";
+    }
 
     // --------------------------------------------------------------- add + download
 

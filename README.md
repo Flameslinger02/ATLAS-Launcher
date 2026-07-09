@@ -4,7 +4,7 @@ A modern Windows desktop launcher and admin console for **Arma 3 dedicated serve
 profiles, mods, missions, scheduling, BattlEye RCON, headless clients, and Discord integration from a single
 self contained application — a spiritual successor to FASTER/TADST with a live admin console.
 
-> **Status:** v0.4.0 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
+> **Status:** v0.4.1 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
 
 ---
 
@@ -24,7 +24,8 @@ self contained application — a spiritual successor to FASTER/TADST with a live
   (SteamCMD) and to update ATLAS itself.
 - **RCON** — BattlEye BERCon client: live player list (kick/ban/unban, PM), bans manager, and a command console
   with history and quick actions.
-- **Scheduler** — cron based restarts, RCON broadcasts, mod/server updates, with countdown warnings.
+- **Scheduler** — daily/weekly/interval restarts, RCON broadcasts, and a combined **Update & Restart**
+  (server + mods), with pre-restart countdown warnings. An Advanced mode still accepts raw cron.
 - **Discord bot** — embedded bot with 22 `/atlas …` slash commands, role gated, plus crash/join/leave notifications
   and a pinned live status embed.
 - **Settings** — SteamCMD setup, Steam Web API key (encrypted), update checker, log level, **light/dark theme**.
