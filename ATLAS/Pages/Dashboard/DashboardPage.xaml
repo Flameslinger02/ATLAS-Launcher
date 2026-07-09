@@ -68,7 +68,7 @@
                         <Run Text="{Binding ActiveProfileName, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock Foreground="{DynamicResource Atlas.Brush.TextSecondary}" FontSize="11" Margin="0,2,0,0"
-                               ToolTip="Live A2S query against the server's Steam query port (game port + 1). Answers here mean the Steam browser layer is up; checking your public IP from inside the LAN can false-negative even when port forwarding works (NAT hairpin).">
+                               ToolTip="Local A2S query (127.0.0.1) against the server's Steam query port. Confirms the server's Steam browser layer is running and answering on this machine — it does NOT verify that your ports are forwarded or that the server is reachable from the internet. Click to refresh.">
                         <Hyperlink Command="{Binding RefreshSteamStatusCommand}" TextDecorations="None">
                             <Run Text="{Binding SteamStatusText, Mode=OneWay}"/>
                         </Hyperlink>
@@ -135,8 +135,9 @@
                             <TextBlock Text="{Binding CpuText}" HorizontalAlignment="Right" FontSize="11"
                                        Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
                         </DockPanel>
-                        <ctl:SparklineChart Height="48" PointsSource="{Binding CpuSeries}" Minimum="0" Maximum="100"
-                                            LineBrush="#4F9DDE"/>
+                        <ctl:SparklineChart Height="64" PointsSource="{Binding CpuSeries}" Minimum="0" Maximum="100"
+                                            LineBrush="#4F9DDE" ShowAxes="True" ValueSuffix="%"
+                                            AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
                     </StackPanel>
                     <StackPanel Margin="4,0">
                         <DockPanel Margin="0,0,0,2">
@@ -144,7 +145,9 @@
                             <TextBlock Text="{Binding MemPeakText}" HorizontalAlignment="Right" FontSize="11"
                                        Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
                         </DockPanel>
-                        <ctl:SparklineChart Height="48" PointsSource="{Binding MemSeries}" LineBrush="#5FB878"/>
+                        <ctl:SparklineChart Height="64" PointsSource="{Binding MemSeries}" LineBrush="#5FB878"
+                                            ShowAxes="True" ValueSuffix=" MB"
+                                            AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
                     </StackPanel>
                     <StackPanel Margin="8,0,0,0">
                         <DockPanel Margin="0,0,0,2">
@@ -152,8 +155,9 @@
                             <TextBlock Text="{Binding PlayerCount}" HorizontalAlignment="Right" FontSize="11"
                                        Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
                         </DockPanel>
-                        <ctl:SparklineChart Height="48" PointsSource="{Binding PlayerSeries}" Minimum="0"
-                                            LineBrush="#C08457"/>
+                        <ctl:SparklineChart Height="64" PointsSource="{Binding PlayerSeries}" Minimum="0"
+                                            LineBrush="#C08457" ShowAxes="True"
+                                            AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
                     </StackPanel>
                 </UniformGrid>
             </StackPanel>

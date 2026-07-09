@@ -2,6 +2,17 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.3.15] — 2026-07-08
+
+### Changed
+- **Performance graphs now have axes** — the Dashboard's CPU, memory and player charts show value labels
+  (with units) on the Y axis and the time span (oldest → now) on the X axis, with light gridlines.
+- **Mission Dependencies hides vanilla by default** — the dependencies window now lists only mod-provided
+  addons; a "Show vanilla (A3_)" toggle reveals the base-game/DLC entries, and the header shows the split.
+- **Clearer Steam status wording** — the Dashboard's Steam check is relabeled to make explicit that it is a
+  local query confirming the server's Steam layer is answering on this machine; it does not verify that
+  your ports are forwarded or that the server is reachable from the internet.
+
 ## [0.3.14] — 2026-07-08
 
 ### Added

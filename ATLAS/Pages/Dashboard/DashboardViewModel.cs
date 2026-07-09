@@ -41,7 +41,7 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _cpuText = "0 %";
     [ObservableProperty] private string _memoryText = "0 MB";
     [ObservableProperty] private int _crashCount;
-    [ObservableProperty] private string _steamStatusText = "Steam query: —";
+    [ObservableProperty] private string _steamStatusText = "Steam layer: —";
 
     // Rolling performance history (1 sample/sec, 30 min window). Exposed as snapshots the sparkline binds to.
     private const int HistoryCapacity = 1800;
@@ -190,7 +190,7 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
             CpuText = "0 %";
             MemoryText = "0 MB";
             _steamTick = 20;
-            SteamStatusText = "Steam query: —";
+            SteamStatusText = "Steam layer: —";
             if (_cpuHistory.Count > 0) ClearHistory();
         }
     }
@@ -224,15 +224,15 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     {
         if (_steamQueryBusy) return;
         var p = _profiles.ActiveProfile;
-        if (p is null || !IsRunning) { SteamStatusText = "Steam query: —"; return; }
+        if (p is null || !IsRunning) { SteamStatusText = "Steam layer: —"; return; }
 
         _steamQueryBusy = true;
         try
         {
             var info = await _steamQuery.QueryInfoAsync("127.0.0.1", p.Port + 1, TimeSpan.FromSeconds(2));
             SteamStatusText = info is null
-                ? "Steam query: no answer (server may still be booting)"
-                : $"Steam query: visible — {info.Players}/{info.MaxPlayers} on {info.Map}{(info.PasswordProtected ? " (passworded)" : "")}";
+                ? "Steam layer: not answering (server may still be booting)"
+                : $"Steam layer: up (local) — {info.Players}/{info.MaxPlayers} on {info.Map}{(info.PasswordProtected ? " (passworded)" : "")}";
         }
         finally { _steamQueryBusy = false; }
     }

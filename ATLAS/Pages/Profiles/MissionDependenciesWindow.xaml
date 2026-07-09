@@ -9,6 +9,9 @@
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
             <Button DockPanel.Dock="Right" Style="{StaticResource Atlas.Button.Secondary}" Content="Copy All"
                     Padding="10,5" Margin="6,0,0,0" Click="OnCopyAll"/>
+            <CheckBox x:Name="ShowVanilla" DockPanel.Dock="Right" Content="Show vanilla (A3_)" VerticalAlignment="Center"
+                      Margin="6,0" Checked="OnToggleVanilla" Unchecked="OnToggleVanilla"
+                      ToolTip="Base-game / DLC dependencies (A3_*) are hidden by default since they need no mods."/>
             <TextBlock x:Name="HeaderText" VerticalAlignment="Center" FontWeight="SemiBold"
                        TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource Atlas.Brush.TextPrimary}"/>
