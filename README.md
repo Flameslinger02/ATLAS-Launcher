@@ -4,7 +4,7 @@ A modern Windows desktop launcher and admin console for **Arma 3 dedicated serve
 profiles, mods, missions, scheduling, BattlEye RCON, headless clients, and Discord integration from a single
 self contained application — a spiritual successor to FASTER/TADST with a live admin console.
 
-> **Status:** v0.4.1 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
+> **Status:** v0.4.2 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
 
 ---
 
@@ -17,8 +17,8 @@ self contained application — a spiritual successor to FASTER/TADST with a live
 - **Missions** — scan `MPMissions` (packed `.pbo` or unpacked mission folders), set the active mission or a
   multi-mission **rotation**, and parameters.
 - **Process management** — launch/stop/restart with crash detection and optional auto restart; live RPT log tail
-  and rolling CPU/RAM/player graphs on the Dashboard. If ATLAS is closed while a server is running, it re-attaches
-  to that server on the next launch.
+  and rolling CPU/RAM/player graphs on the Dashboard, switchable between whole-computer load and just the server
+  process. If ATLAS is closed while a server is running, it re-attaches to that server on the next launch.
 - **Headless clients** — 1–10 instances, per instance profiles/logs, auto restart.
 - **Console** — live ATLAS log and Server RPT viewer, plus an **Updates** tab to install/update the Arma 3 server
   (SteamCMD) and to update ATLAS itself.

@@ -2,6 +2,21 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.4.2] — 2026-07-09
+
+### Changed
+- **Dashboard performance now shows whole-computer load by default** — the CPU and Memory tiles and their
+  graphs report the total usage of the machine (all processes plus the OS), matching what Task Manager
+  shows, so you can see how taxed the box is while the server runs. Memory is a percentage of total
+  installed RAM, on the same fixed 0–100% scale as CPU.
+- **Server / System scope toggle** — a small switch next to the **PERFORMANCE (LAST 5 MIN)** header flips
+  the CPU and Memory readouts between **System** (whole computer) and **Server** (just the Arma server
+  process's share of the machine). Both scopes are recorded continuously, so switching redraws the full
+  five-minute history instantly rather than starting over.
+- **Performance history keeps running while the server is stopped** — the graphs no longer reset when the
+  server is off or restarting, so the timeline persists and you can watch usage jump when the server
+  starts and settle when it stops.
+
 ## [0.4.1] — 2026-07-08
 
 ### Added

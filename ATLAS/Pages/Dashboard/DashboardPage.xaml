@@ -27,6 +27,33 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
+        <!-- One segment of the CPU/memory scope switch (Server vs System). -->
+        <Style x:Key="ScopeSegment" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="3" Padding="8,3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource Atlas.Brush.Background}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource Atlas.Brush.Border}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Atlas.Brush.TextPrimary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <DockPanel Margin="16">
@@ -132,8 +159,20 @@
 
             <Border Grid.Column="1" Style="{StaticResource Card}" Margin="12,0,0,0" Padding="14,10">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="PERFORMANCE (LAST 5 MIN)"
-                               Style="{StaticResource Hdr}" Margin="0,0,0,6"/>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <TextBlock Text="PERFORMANCE (LAST 5 MIN)" Style="{StaticResource Hdr}"
+                                   Margin="0" VerticalAlignment="Center"/>
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="4"
+                                BorderThickness="1" BorderBrush="{DynamicResource Atlas.Brush.Border}" Padding="1"
+                                ToolTip="Server = the Arma server process's share of this machine. System = the whole computer's load (all processes + OS), like Task Manager.">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource ScopeSegment}" GroupName="PerfScope" Content="SERVER"
+                                             IsChecked="{Binding ShowInstance, Mode=TwoWay}"/>
+                                <RadioButton Style="{StaticResource ScopeSegment}" GroupName="PerfScope" Content="SYSTEM"
+                                             IsChecked="{Binding ShowSystemWide, Mode=TwoWay}"/>
+                            </StackPanel>
+                        </Border>
+                    </DockPanel>
                     <UniformGrid Rows="1" Columns="3">
                         <DockPanel Margin="0,0,8,0">
                             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
@@ -151,8 +190,8 @@
                                 <TextBlock Text="{Binding MemPeakText}" HorizontalAlignment="Right" FontSize="11"
                                            Foreground="{DynamicResource Atlas.Brush.TextSecondary}"/>
                             </DockPanel>
-                            <ctl:SparklineChart PointsSource="{Binding MemSeries}" LineBrush="#5FB878"
-                                                ShowAxes="True" ValueSuffix=" MB" WindowSeconds="300"
+                            <ctl:SparklineChart PointsSource="{Binding MemSeries}" Minimum="0" Maximum="100"
+                                                LineBrush="#5FB878" ShowAxes="True" ValueSuffix="%" WindowSeconds="300"
                                                 AxisBrush="{DynamicResource Atlas.Brush.TextSecondary}"/>
                         </DockPanel>
                         <DockPanel Margin="8,0,0,0">
