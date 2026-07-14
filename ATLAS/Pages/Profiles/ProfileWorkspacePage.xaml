@@ -189,6 +189,9 @@
                                         <TextBox Text="{Binding Profile.ArmaProfileName}"/>
                                         <TextBlock Style="{StaticResource Lbl}" Text="Game port"/>
                                         <TextBox Style="{StaticResource Num}" Text="{Binding Profile.Port}"/>
+                                        <TextBlock Style="{StaticResource Lbl}" Text="Public IP (optional — for the Dashboard reachability check)"/>
+                                        <TextBox Text="{Binding Profile.PublicIpOverride}"
+                                                 ToolTip="Leave blank to auto-detect your public IP. Set this only if auto-detect is wrong — e.g. a VPS or a box with several public IPs. Used only for the Dashboard's Public/Local indicator; never written to any server config."/>
                                     </StackPanel>
                                 </Border>
                             </Grid>

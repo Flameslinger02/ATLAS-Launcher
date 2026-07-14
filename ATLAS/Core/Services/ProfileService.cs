@@ -533,7 +533,8 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         "SkillAI", "PrecisionAI", "ViewDistance", "ObjectViewDistance", "TerrainGrid",
         "AdminUids", "IdleFPSLimit", "LobbyIdleTimeout", "RoleTimeOut",
         "MissionWhitelistEnabled", "MissionWhitelistExtra",
-        "AntiFloodEnabled", "AntiFloodCycleTime", "AntiFloodCycleLimit", "AntiFloodCycleHardLimit", "AntiFloodKick"
+        "AntiFloodEnabled", "AntiFloodCycleTime", "AntiFloodCycleLimit", "AntiFloodCycleHardLimit", "AntiFloodKick",
+        "PublicIpOverride"
     };
 
     private static void AddScalarParameters(SqliteCommand cmd, ServerProfile p)
@@ -679,6 +680,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
         cmd.Parameters.AddWithValue("@AntiFloodCycleLimit", p.AntiFloodCycleLimit);
         cmd.Parameters.AddWithValue("@AntiFloodCycleHardLimit", p.AntiFloodCycleHardLimit);
         cmd.Parameters.AddWithValue("@AntiFloodKick", p.AntiFloodKick);
+        cmd.Parameters.AddWithValue("@PublicIpOverride", p.PublicIpOverride);
     }
 
     private static ServerProfile MapScalars(SqliteDataReader r)
@@ -834,6 +836,7 @@ ON CONFLICT(WorkshopId, LocalPath) DO UPDATE SET
             AntiFloodCycleLimit = I("AntiFloodCycleLimit"),
             AntiFloodCycleHardLimit = I("AntiFloodCycleHardLimit"),
             AntiFloodKick = B("AntiFloodKick"),
+            PublicIpOverride = S("PublicIpOverride"),
         };
     }
 }

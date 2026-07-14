@@ -28,6 +28,11 @@ public class ServerProfile
     // Launch parameters
     public string ArmaProfileName { get; set; } = "ATLAS";
     public int Port { get; set; } = AppConstants.DefaultGamePort;
+
+    /// <summary>Optional public IP/hostname override for the Dashboard's Steam public-reachability check.
+    /// Blank = auto-detect the WAN IP. Used only for that indicator; never written to any server config.</summary>
+    public string PublicIpOverride { get; set; } = string.Empty;
+
     public bool EnableBattlEye { get; set; } = true;
     public int FilePatching { get; set; }   // allowedFilePatching: 0 = none, 1 = headless only, 2 = all clients
     public bool ServerFilePatching { get; set; }   // server-side -filePatching: load loose/unpacked files (e.g. unpacked missions)

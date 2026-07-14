@@ -27,9 +27,14 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     private readonly IDialogService _dialogs;
     private readonly IMissionDependencyChecker _depChecker;
     private readonly ISteamQueryService _steamQuery;
+    private readonly IPublicIpService _publicIp;
+    private readonly ISteamMasterListService _masterList;
     private readonly DispatcherTimer _timer;
-    private int _steamTick;                 // seconds since the last A2S visibility poll
+    private int _steamTick;                 // seconds since the last local A2S poll
+    private int _publicTick;                // seconds since the last Steam master-list (public) poll
     private bool _steamQueryBusy;
+    private bool? _lastPublicListed;        // last definitive master-list answer (held across A2S-only refreshes)
+    private bool _publicNoApiKey;           // true when the master-list check is skipped for lack of a key
     private readonly List<IDisposable> _subs = new();
     private const int MaxLogLines = 300;
 
@@ -42,7 +47,10 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     [ObservableProperty] private string _cpuText = "0 %";
     [ObservableProperty] private string _memoryText = "0 %";
     [ObservableProperty] private int _crashCount;
-    [ObservableProperty] private string _steamStatusText = "Steam layer: —";
+    [ObservableProperty] private string _steamStatusText = "Reachability: —";
+
+    /// <summary>Drives the reachability dot colour: "Down" / "Local" / "Public" / "Unknown".</summary>
+    [ObservableProperty] private string _reachState = "Unknown";
 
     /// <summary>Which scope the CPU/memory tiles and graphs report. True (default) = whole-computer load,
     /// all processes + OS, like Task Manager. False = just the Arma server process's share of the machine.
@@ -88,7 +96,8 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     public DashboardViewModel(
         IServerProcessService server, IHeadlessClientService hc, IBattlEyeRconClient rcon,
         IProfileService profiles, INavigationService nav, IDialogService dialogs,
-        IMissionDependencyChecker depChecker, ISteamQueryService steamQuery)
+        IMissionDependencyChecker depChecker, ISteamQueryService steamQuery,
+        IPublicIpService publicIp, ISteamMasterListService masterList)
     {
         _server = server;
         _hc = hc;
@@ -98,6 +107,8 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
         _dialogs = dialogs;
         _depChecker = depChecker;
         _steamQuery = steamQuery;
+        _publicIp = publicIp;
+        _masterList = masterList;
         Title = "Dashboard";
 
         ApplyActiveProfile(_profiles.ActiveProfile);
@@ -224,14 +235,20 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
         {
             var up = _server.Uptime;
             UptimeText = $"{(int)up.TotalHours:00}:{up.Minutes:00}:{up.Seconds:00}";
-            // Poll Steam visibility every 30s (first check ~10s in, giving the Steam layer time to bind).
-            if (++_steamTick >= 30) { _steamTick = 0; _ = RefreshSteamStatusAsync(); }
+            // Local A2S every 30s (first ~10s in, giving the Steam layer time to bind); the Steam
+            // master-list (public) check every ~90s, since that list only updates every few minutes.
+            var checkPublic = ++_publicTick >= 90;
+            if (checkPublic) _publicTick = 0;
+            if (++_steamTick >= 30 || checkPublic) { _steamTick = 0; _ = RefreshReachabilityAsync(checkPublic); }
         }
         else
         {
             UptimeText = "00:00:00";
             _steamTick = 20;
-            SteamStatusText = "Steam layer: —";
+            _publicTick = 85;                 // first public check ~5s after the server comes up
+            _lastPublicListed = null;
+            ReachState = "Down";
+            SteamStatusText = "Reachability: — (server offline)";
         }
     }
 
@@ -340,22 +357,80 @@ public partial class DashboardViewModel : BaseViewModel, IDisposable
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
 
-    /// <summary>A2S_INFO against the local query port (game port + 1) — proves the server's Steam layer
-    /// is up and answering browser queries, independent of RCON.</summary>
+    /// <summary>Manual refresh from the Dashboard link — always re-checks public reachability too.</summary>
     [RelayCommand]
-    private async Task RefreshSteamStatusAsync()
+    private Task RefreshSteamStatus() => RefreshReachabilityAsync(includePublic: true);
+
+    /// <summary>
+    /// Evaluates the three-state reachability indicator. A local A2S query to 127.0.0.1 is the gate: no
+    /// answer ⇒ <b>Down</b>. If it answers, the baseline is <b>Local</b>; when <paramref name="includePublic"/>
+    /// is set we also ask Steam's master server list (via the public IP) whether the server is publicly
+    /// visible, promoting Local ⇒ <b>Public</b>. The last definitive master-list answer is held between the
+    /// slower public polls so the badge doesn't flap on the faster local-only refreshes.
+    /// </summary>
+    private async Task RefreshReachabilityAsync(bool includePublic)
     {
         if (_steamQueryBusy) return;
         var p = _profiles.ActiveProfile;
-        if (p is null || !IsRunning) { SteamStatusText = "Steam layer: —"; return; }
+        if (p is null || !IsRunning)
+        {
+            ReachState = "Down";
+            SteamStatusText = "Reachability: — (server offline)";
+            return;
+        }
 
         _steamQueryBusy = true;
         try
         {
             var info = await _steamQuery.QueryInfoAsync("127.0.0.1", p.Port + 1, TimeSpan.FromSeconds(2));
-            SteamStatusText = info is null
-                ? "Steam layer: not answering (server may still be booting)"
-                : $"Steam layer: up (local) — {info.Players}/{info.MaxPlayers} on {info.Map}{(info.PasswordProtected ? " (passworded)" : "")}";
+            if (info is null)
+            {
+                _lastPublicListed = null;
+                ReachState = "Down";
+                SteamStatusText = "Reachability: not answering locally (server may still be booting)";
+                return;
+            }
+
+            MasterListEntry? listed = null;
+            if (includePublic)
+            {
+                var publicIp = await _publicIp.GetPublicIpAsync(p.PublicIpOverride);
+                if (publicIp is null)
+                {
+                    _lastPublicListed = null; _publicNoApiKey = false;
+                }
+                else
+                {
+                    var (status, entry) = await _masterList.FindAsync(publicIp, p.Port);
+                    _publicNoApiKey = status == MasterListStatus.NoApiKey;
+                    switch (status)
+                    {
+                        case MasterListStatus.Listed:    _lastPublicListed = true;  listed = entry; break;
+                        case MasterListStatus.NotListed: _lastPublicListed = false; break;
+                        // NoApiKey / Unavailable: leave the last definitive answer untouched.
+                    }
+                }
+            }
+
+            var detail = $"{info.Players}/{info.MaxPlayers} on {info.Map}{(info.PasswordProtected ? " (passworded)" : "")}";
+            if (_lastPublicListed == true)
+            {
+                ReachState = "Public";
+                var pub = listed is not null ? $"{listed.Players}/{listed.MaxPlayers} on {listed.Map}" : detail;
+                SteamStatusText = $"Public: visible on the Steam server browser — {pub}";
+            }
+            else if (_lastPublicListed == false)
+            {
+                ReachState = "Local";
+                SteamStatusText = $"Local only: not visible externally — check port forwarding / UPnP — {detail}";
+            }
+            else
+            {
+                ReachState = "Local";
+                SteamStatusText = _publicNoApiKey
+                    ? $"Local: add a Steam Web API key (Settings) to check public reachability — {detail}"
+                    : $"Local: public check unavailable — {detail}";
+            }
         }
         finally { _steamQueryBusy = false; }
     }

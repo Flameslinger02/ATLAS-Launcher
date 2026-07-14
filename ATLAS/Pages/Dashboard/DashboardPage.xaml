@@ -94,12 +94,30 @@
                         <Run Text="  •  "/>
                         <Run Text="{Binding ActiveProfileName, Mode=OneWay}"/>
                     </TextBlock>
-                    <TextBlock Foreground="{DynamicResource Atlas.Brush.TextSecondary}" FontSize="11" Margin="0,2,0,0"
-                               ToolTip="Local A2S query (127.0.0.1) against the server's Steam query port. Confirms the server's Steam browser layer is running and answering on this machine — it does NOT verify that your ports are forwarded or that the server is reachable from the internet. Click to refresh.">
-                        <Hyperlink Command="{Binding RefreshSteamStatusCommand}" TextDecorations="None">
-                            <Run Text="{Binding SteamStatusText, Mode=OneWay}"/>
-                        </Hyperlink>
-                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
+                                ToolTip="Down = not answering on this machine. Local = the server's Steam layer is up locally but Steam's public server list doesn't show it (ports likely not forwarded / UPnP failed). Public = Steam lists it at your public IP, so it's reachable from the internet and appears in the in-game browser. The public check needs a Steam Web API key (Settings) and can take 1–3 minutes to flip to Public after launch (Steam's list updates slowly). Click to refresh now.">
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,6,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource Atlas.Brush.TextSecondary}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ReachState}" Value="Public">
+                                            <Setter Property="Fill" Value="#5FB878"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ReachState}" Value="Local">
+                                            <Setter Property="Fill" Value="#D9A441"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Foreground="{DynamicResource Atlas.Brush.TextSecondary}" FontSize="11">
+                            <Hyperlink Command="{Binding RefreshSteamStatusCommand}" TextDecorations="None"
+                                       Foreground="{DynamicResource Atlas.Brush.TextSecondary}">
+                                <Run Text="{Binding SteamStatusText, Mode=OneWay}"/>
+                            </Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">

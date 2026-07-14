@@ -239,6 +239,17 @@ public sealed class AtlasDatabase
                     await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
+                // v11 -> v12: optional public-IP override for the Dashboard Steam public-reachability check
+                // (blank = auto-detect). Not written to any server config.
+                if (currentVersion < 12)
+                {
+                    await using var alter = conn.CreateCommand();
+                    alter.Transaction = tx;
+                    alter.CommandText =
+                        "ALTER TABLE ServerProfiles ADD COLUMN PublicIpOverride TEXT NOT NULL DEFAULT '';";
+                    await alter.ExecuteNonQueryAsync().ConfigureAwait(false);
+                }
+
                 await using (var setVersion = conn.CreateCommand())
                 {
                     setVersion.Transaction = tx;

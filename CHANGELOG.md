@@ -2,6 +2,24 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.4.3] — 2026-07-13
+
+### Added
+- **Public reachability check on the Dashboard** — the server status indicator is now a three-state
+  **Down / Local / Public** light. *Down* means nothing is answering on this machine; *Local* means the
+  server's Steam layer is up locally but Steam's public server list doesn't show it (your ports are likely
+  not forwarded / UPnP hasn't opened them); *Public* means Steam lists your server at your public IP, so it
+  is reachable from the internet and appears in the in-game server browser. The public check uses the Steam
+  Web API server list, so it needs a **Steam Web API key** (Settings) and can take a minute or two to flip
+  to *Public* after launch. Click the status line to re-check immediately.
+- **Public IP (optional)** field on a profile's Network settings — leave blank to auto-detect your public
+  IP for the reachability check, or set it explicitly for a VPS or a machine with multiple public IPs. It
+  is used only for that indicator and is never written to any server config.
+
+### Changed
+- The database schema was upgraded (to v12) to store the optional public-IP override. Existing profiles
+  are migrated automatically on first launch.
+
 ## [0.4.2] — 2026-07-09
 
 ### Changed

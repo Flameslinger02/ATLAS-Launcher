@@ -57,6 +57,8 @@ public static class AppHost
                 services.AddSingleton<IMissionService, MissionService>();
                 services.AddSingleton<IMissionDependencyChecker, MissionDependencyChecker>();
                 services.AddSingleton<ISteamQueryService, SteamQueryService>();
+                services.AddSingleton<IPublicIpService, PublicIpService>();
+                services.AddSingleton<ISteamMasterListService, SteamMasterListService>();
                 services.AddSingleton<IRptAnalyzerService, RptAnalyzerService>();
                 services.AddSingleton<IBackupService, BackupService>();
                 services.AddSingleton<IArmaInstallLocator, ArmaInstallLocator>();
