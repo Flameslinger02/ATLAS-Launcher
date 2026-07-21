@@ -2,6 +2,16 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.4.4] — 2026-07-21
+
+### Fixed
+- **BattlEye RCON now actually works** — the generated `beserver_x64.cfg` (RCON password/port) was written
+  to the server's `BattlEye` folder but the BattlEye service never loaded it, so the RCON port never opened
+  and connections failed with "closed by host". The launch command now pins BattlEye's config folder with
+  `-bepath`, and stale `beserver_x64_active_*.cfg` leftovers (from a crashed server) are cleared before each
+  launch so they can't shadow the fresh config. You can confirm the config loaded: while the server runs,
+  BattlEye renames it to `beserver_x64_active_####.cfg` (and back on a clean stop).
+
 ## [0.4.3] — 2026-07-13
 
 ### Added

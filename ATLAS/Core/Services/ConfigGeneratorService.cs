@@ -295,6 +295,11 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         if (serverOnly.Length > 0) Flag($"-serverMod={MaybeQuote(serverOnly)}");
 
         Flag(p.EnableBattlEye ? "-BattlEye" : "-noBattlEye");
+        // Pin BattlEye's config folder to where ATLAS writes beserver_x64.cfg. Without -bepath the BE
+        // service resolves its own directory (influenced by -profiles) and never loads our RCON config —
+        // the tell is that the cfg is NOT renamed to beserver_x64_active_####.cfg while the server runs.
+        if (p.EnableBattlEye && !string.IsNullOrWhiteSpace(p.ServerDirectory))
+            Flag($"-bepath={MaybeQuote(Path.Combine(p.ServerDirectory, "BattlEye"))}");
         if (p.ServerFilePatching) Flag("-filePatching");
         if (p.NetLog) Flag("-netlog");
         if (p.NoSound) Flag("-nosound");
@@ -331,8 +336,17 @@ public sealed class ConfigGeneratorService : IConfigGeneratorService
         await File.WriteAllTextAsync(Path.Combine(p.ServerDirectory, "basic.cfg"), GenerateBasicCfg(p), ct)
             .ConfigureAwait(false);
 
+        // BattlEye reads this folder because the launch line pins it with -bepath. While the server runs,
+        // BE renames the cfg to beserver_x64_active_####.cfg (and back on a clean stop) — that rename is
+        // the proof it loaded. A crash can strand an *_active_* copy which would shadow a freshly written
+        // cfg (stale RCON password), so clear any leftovers before writing. Only called while stopped.
         var beDir = Path.Combine(p.ServerDirectory, "BattlEye");
         Directory.CreateDirectory(beDir);
+        foreach (var stale in Directory.EnumerateFiles(beDir, "*active*.cfg"))
+        {
+            try { File.Delete(stale); }
+            catch (Exception ex) { Serilog.Log.Warning(ex, "Could not remove stale BattlEye config {File}.", stale); }
+        }
         await File.WriteAllTextAsync(Path.Combine(beDir, "beserver_x64.cfg"), GenerateBeServerCfg(p), ct)
             .ConfigureAwait(false);
 
