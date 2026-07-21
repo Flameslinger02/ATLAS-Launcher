@@ -57,36 +57,18 @@ public sealed class SteamMasterListService : ISteamMasterListService
 
         try
         {
-            // gameaddr filters to every server Steam knows at this public IP; we then match on the game port.
-            var filter = $@"\appid\{Arma3AppId}\gameaddr\{publicIp}";
-            var url = $"{GetServerListUrl}?key={Uri.EscapeDataString(key)}&filter={Uri.EscapeDataString(filter)}&limit=64";
+            // Primary: constrain server-side to Arma 3 (fewer rows). Arma 3 dedicated servers heartbeat to
+            // the master list under the GAME app id 107410 (233780 is only the server-download app).
+            var (status, entry) = await QueryAsync(key, $@"\appid\{Arma3AppId}\gameaddr\{publicIp}", gamePort, ct)
+                .ConfigureAwait(false);
+            if (status == MasterListStatus.Listed || status == MasterListStatus.Unavailable) return (status, entry);
 
-            await using var stream = await Http.GetStreamAsync(url, ct).ConfigureAwait(false);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
-
-            if (!doc.RootElement.TryGetProperty("response", out var response) ||
-                !response.TryGetProperty("servers", out var servers) ||
-                servers.ValueKind != JsonValueKind.Array)
-            {
-                return (MasterListStatus.NotListed, null);   // empty response = Steam has nothing at this IP
-            }
-
-            foreach (var s in servers.EnumerateArray())
-            {
-                if (!s.TryGetProperty("gameport", out var gp) || gp.ValueKind != JsonValueKind.Number ||
-                    gp.GetInt32() != gamePort)
-                {
-                    continue;
-                }
-
-                return (MasterListStatus.Listed, new MasterListEntry(
-                    GetString(s, "name"),
-                    GetInt(s, "players"),
-                    GetInt(s, "max_players"),
-                    GetString(s, "map")));
-            }
-
-            return (MasterListStatus.NotListed, null);
+            // Fallback: query every server Steam knows at this IP (no app-id constraint) and match the port.
+            // This self-heals if 107410 were ever wrong — a false "not listed" would otherwise read as Local.
+            var (status2, entry2) = await QueryAsync(key, $@"\gameaddr\{publicIp}", gamePort, ct).ConfigureAwait(false);
+            if (status2 == MasterListStatus.Listed)
+                Log.Warning("Server matched Steam's list only without the app-id filter — appid {AppId} may be wrong.", Arma3AppId);
+            return (status2, entry2);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
@@ -94,6 +76,54 @@ public sealed class SteamMasterListService : ISteamMasterListService
             Log.Debug(ex, "Steam master-list lookup for {Ip}:{Port} failed.", publicIp, gamePort);
             return (MasterListStatus.Unavailable, null);
         }
+    }
+
+    private static async Task<(MasterListStatus, MasterListEntry?)> QueryAsync(
+        string key, string filter, int gamePort, CancellationToken ct)
+    {
+        var url = $"{GetServerListUrl}?key={Uri.EscapeDataString(key)}&filter={Uri.EscapeDataString(filter)}&limit=64";
+
+        await using var stream = await Http.GetStreamAsync(url, ct).ConfigureAwait(false);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+
+        if (!doc.RootElement.TryGetProperty("response", out var response) ||
+            !response.TryGetProperty("servers", out var servers) ||
+            servers.ValueKind != JsonValueKind.Array)
+        {
+            return (MasterListStatus.NotListed, null);   // empty response = Steam has nothing at this IP
+        }
+
+        foreach (var s in servers.EnumerateArray())
+        {
+            if (!s.TryGetProperty("gameport", out var gp) || gp.ValueKind != JsonValueKind.Number ||
+                gp.GetInt32() != gamePort)
+            {
+                continue;
+            }
+
+            // Guard against an unrelated game sharing this public IP + port: accept only an Arma entry.
+            // (When the app-id filter is applied server-side this is always true; it matters for the
+            // unfiltered fallback query.)
+            if (!IsArma(s)) continue;
+
+            return (MasterListStatus.Listed, new MasterListEntry(
+                GetString(s, "name"),
+                GetInt(s, "players"),
+                GetInt(s, "max_players"),
+                GetString(s, "map")));
+        }
+
+        return (MasterListStatus.NotListed, null);
+    }
+
+    /// <summary>True when a master-list entry is an Arma server — by app id (107410) or, failing that, by
+    /// its game directory/product ("arma3"). Tolerant of which field Steam populates.</summary>
+    private static bool IsArma(JsonElement s)
+    {
+        if (s.TryGetProperty("appid", out var a) && a.ValueKind == JsonValueKind.Number && a.GetInt32() == Arma3AppId)
+            return true;
+        return GetString(s, "gamedir").Contains("arma", StringComparison.OrdinalIgnoreCase)
+            || GetString(s, "product").Contains("arma", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetString(JsonElement el, string prop) =>

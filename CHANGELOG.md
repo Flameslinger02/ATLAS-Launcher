@@ -2,6 +2,17 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.4.5] — 2026-07-21
+
+### Fixed
+- **RCON page no longer errors on open** — the players list crashed with "A TwoWay or OneWayToSource
+  binding cannot work on the read-only property 'Verified'". The "Verified" column (a BattlEye
+  GUID-validation indicator) is now correctly read-only.
+- **Public reachability check is more robust** — if a server isn't found under the expected Steam app id,
+  ATLAS now falls back to matching it by address and port across Steam's full server list, so a working
+  server no longer risks showing as "Local" instead of "Public". A safeguard also prevents an unrelated
+  game sharing the same public IP and port from being mistaken for your Arma server.
+
 ## [0.4.4] — 2026-07-21
 
 ### Fixed

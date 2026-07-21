@@ -144,7 +144,7 @@
                                     <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" Width="50" MinWidth="44"/>
                                     <DataGridTextColumn Header="GUID" Binding="{Binding Guid}" Width="220" MinWidth="160"/>
                                     <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80" MinWidth="60"/>
-                                    <DataGridCheckBoxColumn Header="Verified" Binding="{Binding Verified}" Width="70" MinWidth="60"/>
+                                    <DataGridCheckBoxColumn Header="Verified" Binding="{Binding Verified, Mode=OneWay}" IsReadOnly="True" Width="70" MinWidth="60"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Border>
