@@ -2,6 +2,18 @@
 
 All notable changes to ATLAS are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## [0.4.6] — 2026-07-22
+
+### Added
+- **RPT analyzer now recognizes Nexus Admin** — the Server RPT analyzer gained a set of rules for the Nexus
+  Admin mod, so its log messages are grouped with a plain-English explanation and a fix instead of showing up
+  as unexplained noise. Covers license/enforcement shutdowns, licensing-server-unreachable and
+  build-entitlement problems, admin-menu open failures, whitelist/permission and plan-feature rejections
+  (bans, framework tools, spawner, audit), RCON/transport and sync failures (ban sync, whitelist sync,
+  command poll, audit/report posts), the built-in anti-cheat auto-kick, "admin online but client mod not
+  loaded" notices, missing-userconfig info, and routine startup output. Each is severity-rated
+  (Critical/Warning/Info) and tagged so it never masks or is masked by the existing generic rules.
+
 ## [0.4.5] — 2026-07-21
 
 ### Fixed

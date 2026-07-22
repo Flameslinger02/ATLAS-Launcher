@@ -4,7 +4,7 @@ A modern Windows desktop launcher and admin console for **Arma 3 dedicated serve
 profiles, mods, missions, scheduling, BattlEye RCON, headless clients, and Discord integration from a single
 self contained application — a spiritual successor to FASTER/TADST with a live admin console.
 
-> **Status:** v0.4.5 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
+> **Status:** v0.4.6 · .NET 8 · WPF · single file, self contained, **portable** Windows x64 executable — no installer, no runtime install; just run it.
 
 ---
 
